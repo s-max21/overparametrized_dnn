@@ -1,380 +1,315 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyNHg5lJrJbekNZ9XHapu+Vf"
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "cells": [
-    {
-      "cell_type": "code",
-      "execution_count": null,
-      "metadata": {
-        "id": "_AzQMZ7t1v5j"
-      },
-      "outputs": [],
-      "source": [
-        "# Import necessary librarys\n",
-        "import numpy as np\n",
-        "import tensorflow as tf\n",
-        "from tensorflow import keras\n",
-        "from tensorflow.keras.layers import Layer, Input, Dense, Concatenate\n",
-        "from tensorflow.keras.initializers import RandomUniform, Zeros\n",
-        "from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau\n",
-        "import math"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "class TruncateLayer(Layer):\n",
-        "    \"\"\"\n",
-        "    A Keras layer that truncates every input to a specified range.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    beta : float\n",
-        "        The value used to determine the truncation range.\n",
-        "        The inputs will be clipped to the range [-beta, beta].\n",
-        "\n",
-        "    Methods\n",
-        "    -------\n",
-        "    call(inputs)\n",
-        "        Applies truncation to the inputs based on the `beta` value.\n",
-        "\n",
-        "    \"\"\"\n",
-        "\n",
-        "    def __init__(self, beta):\n",
-        "        super(TruncateLayer, self).__init__()\n",
-        "        self.beta = tf.constant(beta)\n",
-        "\n",
-        "    def call(self, inputs):\n",
-        "        return tf.clip_by_value(inputs,\n",
-        "                                clip_value_min=-self.beta,\n",
-        "                                clip_value_max=self.beta)"
-      ],
-      "metadata": {
-        "id": "5rIB6jgJ16Bc"
-      },
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "class L1Projection(keras.constraints.Constraint):\n",
-        "    \"\"\"\n",
-        "    A Keras weight constraint that projects the weight vector w on a vector\n",
-        "    with L1-norm smaller or equal to gamma.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    gamma: float\n",
-        "        The value to constraint the L1-norm.\n",
-        "        The weights will be projected on a feasible set where the L1-norm of\n",
-        "        the weight vector is smaller or equal to gamma.\n",
-        "\n",
-        "    Methods\n",
-        "    -------\n",
-        "    projection_l1(w)\n",
-        "        Applies L1-projection to the weight vector w based on the 'gamma' value.\n",
-        "\n",
-        "    \"\"\"\n",
-        "\n",
-        "    def __init__(self, gamma):\n",
-        "        super(L1Projection, self).__init__()\n",
-        "        self.gamma = tf.constant(gamma)\n",
-        "\n",
-        "        # Error handling:\n",
-        "        if self.gamma is None:\n",
-        "            raise ValueError(\"Missing required argument gamma.\")\n",
-        "\n",
-        "    def __call__(self, w):\n",
-        "        return self.apply_l1_projection(w)\n",
-        "\n",
-        "    @tf.function(reduce_retracing=True)\n",
-        "    def apply_l1_projection(self, w):\n",
-        "\n",
-        "        # Test if projection necessary\n",
-        "        if tf.norm(w, ord=1) <= self.gamma:\n",
-        "            return w\n",
-        "        else:\n",
-        "            # Apply L1-projection on weight vector w\n",
-        "            w_shape = w.shape\n",
-        "            w_flat = tf.reshape(w, [-1])\n",
-        "            abs_w_flat = tf.abs(w_flat)\n",
-        "\n",
-        "            # Compute cumulative sum of the sorted absolute weights\n",
-        "            u = tf.sort(abs_w_flat, direction=\"DESCENDING\")\n",
-        "            svp = tf.cumsum(u)\n",
-        "\n",
-        "            # Find the position where the condition is violated for the first time\n",
-        "            cond = (tf.cast(svp - self.gamma, tf.float64)/tf.range(1, tf.size(u) + 1, dtype=tf.float64))\n",
-        "            k = tf.where(tf.cast(u, tf.float64) > cond)[-1][0]\n",
-        "\n",
-        "            # Compute the threshold value\n",
-        "            theta = tf.cast(svp[k] - self.gamma, tf.float32) / tf.cast(k + 1, tf.float32)\n",
-        "\n",
-        "            # Apply the thresholding operation\n",
-        "            projected_weights_flat = tf.math.sign(w_flat) * tf.maximum(abs_w_flat - theta, 0)\n",
-        "            return tf.reshape(projected_weights_flat, shape=w_shape)\n",
-        "\n",
-        "    def get_config(self):\n",
-        "        return {\"gamma\": self.gamma}"
-      ],
-      "metadata": {
-        "id": "cvutOOJM19kG"
-      },
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "class L2ProjectionModel(keras.Model):\n",
-        "    \"\"\"\n",
-        "    A Keras model that performs an L2-projection of the weights in every\n",
-        "    training step, to ensure that the eucledian distance between the weights and\n",
-        "    the initial weights is smaller or equal to 'delta'.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    delta: float\n",
-        "        The value to specify radius of the L2-ball around 'sub_nets_init_weights'.\n",
-        "        The weights will be projected on the feasible set where the L2-norm of\n",
-        "        the difference between current weight vector and the initial weight\n",
-        "        vector is smaller or equal to delta.\n",
-        "\n",
-        "    \"\"\"\n",
-        "\n",
-        "    def __init__(self, delta, sub_networks=None, output_layer=None, num_networks=None, num_layers=None, num_neurons=None, beta=None, gamma=None, **kwargs):\n",
-        "        super(L2ProjectionModel, self).__init__(**kwargs)\n",
-        "        self.delta = tf.constant(delta)\n",
-        "        self.sub_nets_init_weights = None\n",
-        "\n",
-        "        # Optional parameters for analysis\n",
-        "        self.sub_networks = sub_networks\n",
-        "        self.output_layer = output_layer\n",
-        "        self.num_networks = num_networks\n",
-        "        self.num_layers = num_layers\n",
-        "        self.num_neurons = num_neurons\n",
-        "        self.beta = tf.constant(beta)\n",
-        "        self.gamma = tf.constant(gamma)\n",
-        "\n",
-        "        # Error handling:\n",
-        "        if self.delta is None:\n",
-        "            raise ValueError(\"Missing required argument delta.\")\n",
-        "\n",
-        "\n",
-        "    @tf.function(reduce_retracing=True)\n",
-        "    def train_step(self, data):\n",
-        "        \"\"\"\n",
-        "        Custom training step for the model.\n",
-        "\n",
-        "        After applying the gradients, the weight vector will be projected on the\n",
-        "        L2-ball with radius 'delta' around the center 'sub_nets_init_weights'.\n",
-        "\n",
-        "        Parameters\n",
-        "        ----------\n",
-        "        data: float\n",
-        "            The value to constraint the L2-norm.\n",
-        "            The weights will be projected on a feasible set where the L2-norm of\n",
-        "            the weight vector is smaller or equal to delta.\n",
-        "\n",
-        "        \"\"\"\n",
-        "\n",
-        "        # Unpack the data used for training\n",
-        "        x, y = data\n",
-        "\n",
-        "        with tf.GradientTape() as tape:\n",
-        "            y_pred = self(x, training=True)\n",
-        "            # Compute the loss value\n",
-        "            loss = self.compute_loss(y=y, y_pred=y_pred)\n",
-        "\n",
-        "        # Compute gradients\n",
-        "        trainable_vars = self.trainable_variables\n",
-        "        gradients = tape.gradient(loss, trainable_vars)\n",
-        "\n",
-        "        # Update weights\n",
-        "        self.optimizer.apply_gradients(zip(gradients, trainable_vars))\n",
-        "\n",
-        "        # Get current weights and compute global weight difference\n",
-        "        current_weights = tf.concat([tf.reshape(w, [-1]) for w in self.trainable_variables[:-1]], axis=0)\n",
-        "        sub_nets_init_weights = self.sub_nets_init_weights\n",
-        "        weights_diff = current_weights - sub_nets_init_weights\n",
-        "\n",
-        "        # Apply L2 projection\n",
-        "        if tf.norm(weights_diff) > self.delta:\n",
-        "            # Project the weights and reshape back\n",
-        "            self.apply_l2_projection(weights_diff)\n",
-        "\n",
-        "        # Update metrics (includes the metric that tracks the loss)\n",
-        "        for metric in self.metrics:\n",
-        "            if metric.name == \"loss\":\n",
-        "                metric.update_state(loss)\n",
-        "            else:\n",
-        "                metric.update_state(y, y_pred)\n",
-        "        # Return a dict mapping metric names to current value\n",
-        "        return {m.name: m.result() for m in self.metrics}\n",
-        "\n",
-        "\n",
-        "    @tf.function(reduce_retracing=True)\n",
-        "    def apply_l2_projection(self, weights_diff):\n",
-        "        \"\"\"\n",
-        "        Projection on L2-ball with center 'sub_nets_init_weights' and radius 'delta'.\n",
-        "\n",
-        "        \"\"\"\n",
-        "\n",
-        "        # Projection of the weights\n",
-        "        projected_weights = self.sub_nets_init_weights + tf.clip_by_norm(weights_diff, self.delta)\n",
-        "\n",
-        "        # Reshape the projected vector to assign weights correctly\n",
-        "        start = 0\n",
-        "        for w in self.trainable_variables[:-1]:\n",
-        "            shape = w.shape\n",
-        "            size = tf.reduce_prod(shape)\n",
-        "            w.assign(tf.reshape(projected_weights[start:start + size], shape))\n",
-        "            start += size\n",
-        "\n",
-        "    def get_config(self):\n",
-        "        return {\"gamma\": self.gamma,\n",
-        "                \"delta\": self.delta,\n",
-        "                \"beta\": self.beta,\n",
-        "                \"num_networks\": self.num_networks,\n",
-        "                \"num_layers\": self.num_layers,\n",
-        "                \"num_neurons\": self.num_neurons}"
-      ],
-      "metadata": {
-        "id": "cMw9qPfS2BTz"
-      },
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "def build_sub_network(n=10, num_neurons=5, num_layers=None, beta=None):\n",
-        "    # Initialize parameters\n",
-        "    if beta is None:\n",
-        "        beta = 100*np.log(n)\n",
-        "    if num_layers is None:\n",
-        "        num_layers = math.ceil(np.log(n))\n",
-        "\n",
-        "    # Define submodel\n",
-        "    model = keras.models.Sequential()\n",
-        "\n",
-        "    # Create input layer\n",
-        "    model.add(\n",
-        "        Dense(units=num_neurons,\n",
-        "              activation=\"relu\",\n",
-        "              kernel_initializer=RandomUniform(minval=-n, maxval=n),\n",
-        "              bias_initializer=RandomUniform(minval=-n, maxval=n)\n",
-        "              )\n",
-        "        )\n",
-        "\n",
-        "    # Create num_layers-1 hidden layers\n",
-        "    for _ in range(1, num_layers-1):\n",
-        "        model.add(\n",
-        "            Dense(units=num_neurons,\n",
-        "                  activation=\"relu\",\n",
-        "                  kernel_initializer=RandomUniform(minval=-1, maxval=1),\n",
-        "                  bias_initializer=RandomUniform(minval=-1, maxval=1)\n",
-        "                  )\n",
-        "            )\n",
-        "\n",
-        "    # Create output layer\n",
-        "    model.add(\n",
-        "        Dense(units=1,\n",
-        "              activation=\"relu\",\n",
-        "              kernel_initializer=RandomUniform(minval=-1, maxval=1),\n",
-        "              bias_initializer=RandomUniform(minval=-1, maxval=1)\n",
-        "              )\n",
-        "        )\n",
-        "\n",
-        "    # Create tuncation layer\n",
-        "    model.add(\n",
-        "        TruncateLayer(beta=beta)\n",
-        "        )\n",
-        "\n",
-        "    return model"
-      ],
-      "metadata": {
-        "id": "XwT9NpXK2CTz"
-      },
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "def create_model(train_shape, num_networks=None, num_layers=None, num_neurons=5,  beta=None, gamma=None, delta=1):\n",
-        "    # Define input shape based on dimension of input variable\n",
-        "    n, d = train_shape\n",
-        "    input_shape = (d,)\n",
-        "\n",
-        "    # Initialize parameters\n",
-        "    if num_networks is None:\n",
-        "        num_networks = math.ceil(n**((np.log(n)**1.1 + 1)))\n",
-        "    if num_layers is None:\n",
-        "        num_layers = math.ceil(np.log(n))\n",
-        "    if beta is None:\n",
-        "        beta = 10*np.log(n)\n",
-        "    if gamma is None:\n",
-        "        gamma = 10*n**(d/(2*(1+d)))\n",
-        "\n",
-        "    # Create a list containing num_networks DNNs with num_layers hidden layers\n",
-        "    sub_networks = [build_sub_network(n=n,\n",
-        "                                      num_neurons=num_neurons,\n",
-        "                                      num_layers=num_layers,\n",
-        "                                      beta=beta)\n",
-        "    for _ in range(num_networks)]\n",
-        "\n",
-        "    # Create the output layer\n",
-        "    output_layer = Dense(units=1,\n",
-        "                         use_bias=False,\n",
-        "                         kernel_initializer=Zeros(),\n",
-        "                         kernel_constraint=L1Projection(gamma)\n",
-        "                         )\n",
-        "\n",
-        "    # Define the structure of the combined model\n",
-        "    inputs = Input(shape=input_shape)\n",
-        "    truncated_outputs = [sub_net(inputs) for sub_net in sub_networks]\n",
-        "    concatenated_outputs = Concatenate()(truncated_outputs)\n",
-        "    outputs = output_layer(concatenated_outputs)\n",
-        "\n",
-        "    # Create the model\n",
-        "    model = L2ProjectionModel(inputs=inputs,\n",
-        "                              outputs=outputs,\n",
-        "                              delta=delta,\n",
-        "                              sub_networks=sub_networks,\n",
-        "                              output_layer=output_layer,\n",
-        "                              num_networks=num_networks,\n",
-        "                              num_layers=num_layers,\n",
-        "                              num_neurons=num_neurons,\n",
-        "                              beta=beta,\n",
-        "                              gamma=gamma)\n",
-        "\n",
-        "    # One-time initialization of initial weights\n",
-        "    if model.sub_nets_init_weights is None:\n",
-        "        sub_nets_init_weights = tf.concat([tf.reshape(w, [-1]) for w in model.trainable_variables[:-1]], axis=0)\n",
-        "        model.sub_nets_init_weights = sub_nets_init_weights\n",
-        "\n",
-        "    return model"
-      ],
-      "metadata": {
-        "id": "SGN0896V2IoX"
-      },
-      "execution_count": null,
-      "outputs": []
-    }
-  ]
-}
+# -*- coding: utf-8 -*-
+"""my_dnn.ipynb
+
+Automatically generated by Colaboratory.
+
+Original file is located at
+    https://colab.research.google.com/drive/13waaSNorxSTaoxYBI0feqGQgSHAlxGnO
+"""
+
+# Import necessary librarys
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.layers import Layer, Input, Dense, Concatenate
+from tensorflow.keras.initializers import RandomUniform, Zeros
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+import math
+
+class TruncateLayer(Layer):
+    """
+    A Keras layer that truncates every input to a specified range.
+
+    Parameters
+    ----------
+    beta : float
+        The value used to determine the truncation range.
+        The inputs will be clipped to the range [-beta, beta].
+
+    Methods
+    -------
+    call(inputs)
+        Applies truncation to the inputs based on the `beta` value.
+
+    """
+
+    def __init__(self, beta):
+        super(TruncateLayer, self).__init__()
+        self.beta = tf.constant(beta)
+
+    def call(self, inputs):
+        return tf.clip_by_value(inputs,
+                                clip_value_min=-self.beta,
+                                clip_value_max=self.beta)
+
+class L1Projection(keras.constraints.Constraint):
+    """
+    A Keras weight constraint that projects the weight vector w on a vector
+    with L1-norm smaller or equal to gamma.
+
+    Parameters
+    ----------
+    gamma: float
+        The value to constraint the L1-norm.
+        The weights will be projected on a feasible set where the L1-norm of
+        the weight vector is smaller or equal to gamma.
+
+    Methods
+    -------
+    projection_l1(w)
+        Applies L1-projection to the weight vector w based on the 'gamma' value.
+
+    """
+
+    def __init__(self, gamma):
+        super(L1Projection, self).__init__()
+        self.gamma = tf.constant(gamma)
+
+        # Error handling:
+        if self.gamma is None:
+            raise ValueError("Missing required argument gamma.")
+
+    def __call__(self, w):
+        return self.apply_l1_projection(w)
+
+    @tf.function(reduce_retracing=True)
+    def apply_l1_projection(self, w):
+
+        # Test if projection necessary
+        if tf.norm(w, ord=1) <= self.gamma:
+            return w
+        else:
+            # Apply L1-projection on weight vector w
+            w_shape = w.shape
+            w_flat = tf.reshape(w, [-1])
+            abs_w_flat = tf.abs(w_flat)
+
+            # Compute cumulative sum of the sorted absolute weights
+            u = tf.sort(abs_w_flat, direction="DESCENDING")
+            svp = tf.cumsum(u)
+
+            # Find the position where the condition is violated for the first time
+            cond = (tf.cast(svp - self.gamma, tf.float64)/tf.range(1, tf.size(u) + 1, dtype=tf.float64))
+            k = tf.where(tf.cast(u, tf.float64) > cond)[-1][0]
+
+            # Compute the threshold value
+            theta = tf.cast(svp[k] - self.gamma, tf.float32) / tf.cast(k + 1, tf.float32)
+
+            # Apply the thresholding operation
+            projected_weights_flat = tf.math.sign(w_flat) * tf.maximum(abs_w_flat - theta, 0)
+            return tf.reshape(projected_weights_flat, shape=w_shape)
+
+    def get_config(self):
+        return {"gamma": self.gamma}
+
+class L2ProjectionModel(keras.Model):
+    """
+    A Keras model that performs an L2-projection of the weights in every
+    training step, to ensure that the eucledian distance between the weights and
+    the initial weights is smaller or equal to 'delta'.
+
+    Parameters
+    ----------
+    delta: float
+        The value to specify radius of the L2-ball around 'sub_nets_init_weights'.
+        The weights will be projected on the feasible set where the L2-norm of
+        the difference between current weight vector and the initial weight
+        vector is smaller or equal to delta.
+
+    """
+
+    def __init__(self, delta, sub_networks=None, output_layer=None, num_networks=None, num_layers=None, num_neurons=None, beta=None, gamma=None, **kwargs):
+        super(L2ProjectionModel, self).__init__(**kwargs)
+        self.delta = tf.constant(delta)
+        self.sub_nets_init_weights = None
+
+        # Optional parameters for analysis
+        self.sub_networks = sub_networks
+        self.output_layer = output_layer
+        self.num_networks = num_networks
+        self.num_layers = num_layers
+        self.num_neurons = num_neurons
+        self.beta = tf.constant(beta)
+        self.gamma = tf.constant(gamma)
+
+        # Error handling:
+        if self.delta is None:
+            raise ValueError("Missing required argument delta.")
+
+
+    @tf.function(reduce_retracing=True)
+    def train_step(self, data):
+        """
+        Custom training step for the model.
+
+        After applying the gradients, the weight vector will be projected on the
+        L2-ball with radius 'delta' around the center 'sub_nets_init_weights'.
+
+        Parameters
+        ----------
+        data: float
+            The value to constraint the L2-norm.
+            The weights will be projected on a feasible set where the L2-norm of
+            the weight vector is smaller or equal to delta.
+
+        """
+
+        # Unpack the data used for training
+        x, y = data
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)
+            # Compute the loss value
+            loss = self.compute_loss(y=y, y_pred=y_pred)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Get current weights and compute global weight difference
+        current_weights = tf.concat([tf.reshape(w, [-1]) for w in self.trainable_variables[:-1]], axis=0)
+        sub_nets_init_weights = self.sub_nets_init_weights
+        weights_diff = current_weights - sub_nets_init_weights
+
+        # Apply L2 projection
+        if tf.norm(weights_diff) > self.delta:
+            # Project the weights and reshape back
+            self.apply_l2_projection(weights_diff)
+
+        # Update metrics (includes the metric that tracks the loss)
+        for metric in self.metrics:
+            if metric.name == "loss":
+                metric.update_state(loss)
+            else:
+                metric.update_state(y, y_pred)
+        # Return a dict mapping metric names to current value
+        return {m.name: m.result() for m in self.metrics}
+
+
+    @tf.function(reduce_retracing=True)
+    def apply_l2_projection(self, weights_diff):
+        """
+        Projection on L2-ball with center 'sub_nets_init_weights' and radius 'delta'.
+
+        """
+
+        # Projection of the weights
+        projected_weights = self.sub_nets_init_weights + tf.clip_by_norm(weights_diff, self.delta)
+
+        # Reshape the projected vector to assign weights correctly
+        start = 0
+        for w in self.trainable_variables[:-1]:
+            shape = w.shape
+            size = tf.reduce_prod(shape)
+            w.assign(tf.reshape(projected_weights[start:start + size], shape))
+            start += size
+
+    def get_config(self):
+        return {"gamma": self.gamma,
+                "delta": self.delta,
+                "beta": self.beta,
+                "num_networks": self.num_networks,
+                "num_layers": self.num_layers,
+                "num_neurons": self.num_neurons}
+
+def build_sub_network(n=10, num_neurons=5, num_layers=None, beta=None):
+    # Initialize parameters
+    if beta is None:
+        beta = 100*np.log(n)
+    if num_layers is None:
+        num_layers = math.ceil(np.log(n))
+
+    # Define submodel
+    model = keras.models.Sequential()
+
+    # Create input layer
+    model.add(
+        Dense(units=num_neurons,
+              activation="relu",
+              kernel_initializer=RandomUniform(minval=-n, maxval=n),
+              bias_initializer=RandomUniform(minval=-n, maxval=n)
+              )
+        )
+
+    # Create num_layers-1 hidden layers
+    for _ in range(1, num_layers-1):
+        model.add(
+            Dense(units=num_neurons,
+                  activation="relu",
+                  kernel_initializer=RandomUniform(minval=-1, maxval=1),
+                  bias_initializer=RandomUniform(minval=-1, maxval=1)
+                  )
+            )
+
+    # Create output layer
+    model.add(
+        Dense(units=1,
+              activation="relu",
+              kernel_initializer=RandomUniform(minval=-1, maxval=1),
+              bias_initializer=RandomUniform(minval=-1, maxval=1)
+              )
+        )
+
+    # Create tuncation layer
+    model.add(
+        TruncateLayer(beta=beta)
+        )
+
+    return model
+
+def create_model(train_shape, num_networks=None, num_layers=None, num_neurons=5,  beta=None, gamma=None, delta=1):
+    # Define input shape based on dimension of input variable
+    n, d = train_shape
+    input_shape = (d,)
+
+    # Initialize parameters
+    if num_networks is None:
+        num_networks = math.ceil(n**((np.log(n)**1.1 + 1)))
+    if num_layers is None:
+        num_layers = math.ceil(np.log(n))
+    if beta is None:
+        beta = 10*np.log(n)
+    if gamma is None:
+        gamma = 10*n**(d/(2*(1+d)))
+
+    # Create a list containing num_networks DNNs with num_layers hidden layers
+    sub_networks = [build_sub_network(n=n,
+                                      num_neurons=num_neurons,
+                                      num_layers=num_layers,
+                                      beta=beta)
+    for _ in range(num_networks)]
+
+    # Create the output layer
+    output_layer = Dense(units=1,
+                         use_bias=False,
+                         kernel_initializer=Zeros(),
+                         kernel_constraint=L1Projection(gamma)
+                         )
+
+    # Define the structure of the combined model
+    inputs = Input(shape=input_shape)
+    truncated_outputs = [sub_net(inputs) for sub_net in sub_networks]
+    concatenated_outputs = Concatenate()(truncated_outputs)
+    outputs = output_layer(concatenated_outputs)
+
+    # Create the model
+    model = L2ProjectionModel(inputs=inputs,
+                              outputs=outputs,
+                              delta=delta,
+                              sub_networks=sub_networks,
+                              output_layer=output_layer,
+                              num_networks=num_networks,
+                              num_layers=num_layers,
+                              num_neurons=num_neurons,
+                              beta=beta,
+                              gamma=gamma)
+
+    # One-time initialization of initial weights
+    if model.sub_nets_init_weights is None:
+        sub_nets_init_weights = tf.concat([tf.reshape(w, [-1]) for w in model.trainable_variables[:-1]], axis=0)
+        model.sub_nets_init_weights = sub_nets_init_weights
+
+    return model
