@@ -63,11 +63,11 @@ class L1Projection(keras.constraints.Constraint):
 
     def __init__(self, gamma):
         super(L1Projection, self).__init__()
-        self.gamma = tf.constant(gamma)
-
         # Error handling:
         if self.gamma is None:
             raise ValueError("Missing required argument gamma.")
+        self.gamma = tf.constant(gamma)
+
 
     def __call__(self, w):
         return self.apply_l1_projection(w)
@@ -120,6 +120,9 @@ class L2ProjectionModel(keras.Model):
 
     def __init__(self, delta, sub_networks=None, output_layer=None, num_networks=None, num_layers=None, num_neurons=None, beta=None, gamma=None, **kwargs):
         super(L2ProjectionModel, self).__init__(**kwargs)
+        # Error handling:
+        if self.delta is None:
+            raise ValueError("Missing required argument delta.")
         self.delta = tf.constant(delta)
         self.sub_nets_init_weights = None
 
@@ -131,10 +134,6 @@ class L2ProjectionModel(keras.Model):
         self.num_neurons = num_neurons
         self.beta = tf.constant(beta)
         self.gamma = tf.constant(gamma)
-
-        # Error handling:
-        if self.delta is None:
-            raise ValueError("Missing required argument delta.")
 
 
     @tf.function(reduce_retracing=True)
@@ -148,9 +147,7 @@ class L2ProjectionModel(keras.Model):
         Parameters
         ----------
         data: float
-            The value to constraint the L2-norm.
-            The weights will be projected on a feasible set where the L2-norm of
-            the weight vector is smaller or equal to delta.
+            data used for training
 
         """
 
