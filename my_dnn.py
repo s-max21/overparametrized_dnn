@@ -63,10 +63,11 @@ class L1Projection(keras.constraints.Constraint):
 
     def __init__(self, gamma):
         super(L1Projection, self).__init__()
+        self.gamma = tf.constant(gamma)
+
         # Error handling:
         if self.gamma is None:
             raise ValueError("Missing required argument gamma.")
-        self.gamma = tf.constant(gamma)
 
 
     def __call__(self, w):
