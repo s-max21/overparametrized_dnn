@@ -121,11 +121,12 @@ class L2ProjectionModel(keras.Model):
 
     def __init__(self, delta, sub_networks=None, output_layer=None, num_networks=None, num_layers=None, num_neurons=None, beta=None, gamma=None, **kwargs):
         super(L2ProjectionModel, self).__init__(**kwargs)
+        self.delta = tf.constant(delta)
+        self.sub_nets_init_weights = None
+
         # Error handling:
         if self.delta is None:
             raise ValueError("Missing required argument delta.")
-        self.delta = tf.constant(delta)
-        self.sub_nets_init_weights = None
 
         # Optional parameters for analysis
         self.sub_networks = sub_networks
