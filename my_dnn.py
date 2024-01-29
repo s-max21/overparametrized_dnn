@@ -11,9 +11,9 @@ Original file is located at
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Layer, Input, Dense, Concatenate
-from tensorflow.keras.initializers import RandomUniform, Zeros
-from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+from keras.layers import Layer, Input, Dense, Concatenate
+from keras.initializers import RandomUniform, Zeros
+from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 import math
 
 class TruncateLayer(Layer):
@@ -41,6 +41,7 @@ class TruncateLayer(Layer):
         return tf.clip_by_value(inputs,
                                 clip_value_min=-self.beta,
                                 clip_value_max=self.beta)
+
 
 class L1Projection(keras.constraints.Constraint):
     """
@@ -102,6 +103,7 @@ class L1Projection(keras.constraints.Constraint):
 
     def get_config(self):
         return {"gamma": self.gamma}
+
 
 class L2ProjectionModel(keras.Model):
     """
@@ -214,7 +216,29 @@ class L2ProjectionModel(keras.Model):
                 "num_layers": self.num_layers,
                 "num_neurons": self.num_neurons}
 
-def build_sub_network(n=10, num_neurons=5, num_layers=None, beta=None):
+
+def build_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
+    """
+    Creates a submodel with num_layers hidden layers and a truncation layer as
+    the last layer.
+
+    Parameters
+    ----------
+    n: int
+        number of training samples
+    num_neurons: int, optional
+        number of neurons in each hidden layer (default: 5)
+    num_layers: int, optional
+        number of hidden layers (default: math.ceil(np.log(n)))
+    beta: float, optional
+        parameter for the truncation layer (default: 100*np.log(n))
+
+    Returns
+    -------
+    model: keras.models.Sequential
+        submodel containing a truncation layer as last layer
+
+    """
     # Initialize parameters
     if beta is None:
         beta = 100*np.log(n)
@@ -259,7 +283,30 @@ def build_sub_network(n=10, num_neurons=5, num_layers=None, beta=None):
 
     return model
 
+
 def create_model(train_shape, num_networks=None, num_layers=None, num_neurons=5,  beta=None, gamma=None, delta=1):
+    """
+    Creates a model with num_networks subnetworks with num_layers hidden layers
+    each. The output is the average of the outputs of the subnetworks.
+
+    Parameters
+    ----------
+    train_shape: tuple
+        shape of the training data
+    num_networks: int, optional
+        number of subnetworks to train (default: math.ceil(n**((np.log(n)**1.1 + 1))))
+    num_layers: int, optional
+        number of hidden layers in each subnetwork (default: math.ceil(np.log(n)))
+    num_neurons: int, optional
+        number of neurons in each hidden layer (default: 5)
+    beta: float, optional
+        parameter for the truncation layer (default: 10*np.log(n))
+    gamma: float, optional
+        parameter for the L1 projection layer (default: 10*n**(d/(2*(1+d))))
+    delta: float, optional
+        parameter for the L2 projection (default: 1)
+
+    """
     # Define input shape based on dimension of input variable
     n, d = train_shape
     input_shape = (d,)
