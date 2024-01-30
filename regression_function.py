@@ -47,3 +47,17 @@ def m7(x):
     if x.size[1] != 2:
         raise ValueError("Input must be two dimensional")
     return 3 - 2 * np.min(3, x[0] ** 2 + np.abs(x[1] ** 2))
+
+
+def m8(x):
+    if x.size[1] != 2:
+        raise ValueError("Input must be two dimensional")
+    return 1 / (1 + np.exp(-x[0] - x[1]))
+
+
+# Three dimensional test functions
+def m9(x):
+    if x.size[1] != 3:
+        raise ValueError("Input must be three dimensional")
+    return 2 * x[0] ** 2 - 1.05 * x[0] ** 4 + x[0] ** 6 / 6 + x[0] * x[1] + x[1] ** 2
+
