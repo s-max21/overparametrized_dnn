@@ -242,7 +242,7 @@ class L2ProjectionModel(keras.Model):
         }
 
 
-def build_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
+def create_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
     """
     Creates a submodel with num_layers hidden layers and a truncation layer as
     the last layer.
@@ -310,7 +310,7 @@ def build_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
     return model
 
 
-def create_model(
+def create_dnn(
     train_shape,
     num_networks=None,
     num_layers=None,
@@ -357,7 +357,7 @@ def create_model(
 
     # Create a list containing num_networks DNNs with num_layers hidden layers
     sub_networks = [
-        build_sub_network(
+        create_sub_network(
             n=n, num_neurons=num_neurons, num_layers=num_layers, beta=beta
         )
         for _ in range(num_networks)
