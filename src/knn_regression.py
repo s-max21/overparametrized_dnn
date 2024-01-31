@@ -2,6 +2,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import numpy as np
 
+
 def train_and_evaluate_knn(model, train_data, test_data):
     x_train, y_train = train_data
     x_test, y_test = test_data

@@ -19,15 +19,15 @@ def tune_tree_parameters(train_data):
 
     # Define the parameter grid
     param_grid = {
-        'max_depth': [None, 5, 10, 15, 20],
-        'max_leaf_nodes': [None, 5, 10, 20, 30, 50]
+        "max_depth": [None, 5, 10, 15, 20],
+        "max_leaf_nodes": [None, 5, 10, 20, 30, 50],
     }
 
     # Create a DecisionTreeRegressor
     tree = DecisionTreeRegressor()
 
     # Create a GridSearchCV
-    grid_search = GridSearchCV(tree, param_grid, cv=5, scoring='neg_mean_squared_error')
+    grid_search = GridSearchCV(tree, param_grid, cv=5, scoring="neg_mean_squared_error")
 
     # Fit the GridSearchCV to the training data
     grid_search.fit(x_train, y_train)
