@@ -41,7 +41,7 @@ class TruncateLayer(Layer):
 
     def __init__(self, beta):
         super(TruncateLayer, self).__init__()
-        self.beta = tf.constant(beta)
+        self.beta = tf.constant(beta, dtype=tf.float32)
 
     def call(self, inputs):
         return tf.clip_by_value(
@@ -70,7 +70,7 @@ class L1Projection(keras.constraints.Constraint):
 
     def __init__(self, gamma):
         super(L1Projection, self).__init__()
-        self.gamma = tf.constant(gamma)
+        self.gamma = tf.constant(gamma, dtype=tf.float32)
 
         # Error handling:
         if self.gamma is None:
@@ -144,7 +144,7 @@ class L2ProjectionModel(keras.Model):
         **kwargs
     ):
         super(L2ProjectionModel, self).__init__(**kwargs)
-        self.delta = tf.constant(delta)
+        self.delta = tf.constant(delta, dtype=tf.float32)
         self.sub_nets_init_weights = None
 
         # Error handling:
