@@ -13,8 +13,14 @@ import tensorflow as tf
 from tensorflow import keras
 from keras.layers import Layer, Input, Dense, Concatenate
 from keras.initializers import RandomUniform, Zeros
-from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+from keras.callbacks import (
+    TensorBoard,
+    ModelCheckpoint,
+    EarlyStopping,
+    ReduceLROnPlateau,
+)
 import math
+
 
 class TruncateLayer(Layer):
     """
@@ -38,9 +44,9 @@ class TruncateLayer(Layer):
         self.beta = tf.constant(beta)
 
     def call(self, inputs):
-        return tf.clip_by_value(inputs,
-                                clip_value_min=-self.beta,
-                                clip_value_max=self.beta)
+        return tf.clip_by_value(
+            inputs, clip_value_min=-self.beta, clip_value_max=self.beta
+        )
 
 
 class L1Projection(keras.constraints.Constraint):
@@ -70,13 +76,11 @@ class L1Projection(keras.constraints.Constraint):
         if self.gamma is None:
             raise ValueError("Missing required argument gamma.")
 
-
     def __call__(self, w):
         return self.apply_l1_projection(w)
 
     @tf.function(reduce_retracing=True)
     def apply_l1_projection(self, w):
-
         # Test if projection necessary
         if tf.norm(w, ord=1) <= self.gamma:
             return w
@@ -91,14 +95,20 @@ class L1Projection(keras.constraints.Constraint):
             svp = tf.cumsum(u)
 
             # Find the position where the condition is violated for the first time
-            cond = (tf.cast(svp - self.gamma, tf.float64)/tf.range(1, tf.size(u) + 1, dtype=tf.float64))
+            cond = tf.cast(svp - self.gamma, tf.float64) / tf.range(
+                1, tf.size(u) + 1, dtype=tf.float64
+            )
             k = tf.where(tf.cast(u, tf.float64) > cond)[-1][0]
 
             # Compute the threshold value
-            theta = tf.cast(svp[k] - self.gamma, tf.float32) / tf.cast(k + 1, tf.float32)
+            theta = tf.cast(svp[k] - self.gamma, tf.float32) / tf.cast(
+                k + 1, tf.float32
+            )
 
             # Apply the thresholding operation
-            projected_weights_flat = tf.math.sign(w_flat) * tf.maximum(abs_w_flat - theta, 0)
+            projected_weights_flat = tf.math.sign(w_flat) * tf.maximum(
+                abs_w_flat - theta, 0
+            )
             return tf.reshape(projected_weights_flat, shape=w_shape)
 
     def get_config(self):
@@ -121,7 +131,18 @@ class L2ProjectionModel(keras.Model):
 
     """
 
-    def __init__(self, delta, sub_networks=None, output_layer=None, num_networks=None, num_layers=None, num_neurons=None, beta=None, gamma=None, **kwargs):
+    def __init__(
+        self,
+        delta,
+        sub_networks=None,
+        output_layer=None,
+        num_networks=None,
+        num_layers=None,
+        num_neurons=None,
+        beta=None,
+        gamma=None,
+        **kwargs
+    ):
         super(L2ProjectionModel, self).__init__(**kwargs)
         self.delta = tf.constant(delta)
         self.sub_nets_init_weights = None
@@ -138,7 +159,6 @@ class L2ProjectionModel(keras.Model):
         self.num_neurons = num_neurons
         self.beta = tf.constant(beta)
         self.gamma = tf.constant(gamma)
-
 
     @tf.function(reduce_retracing=True)
     def train_step(self, data):
@@ -171,7 +191,9 @@ class L2ProjectionModel(keras.Model):
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
         # Get current weights and compute global weight difference
-        current_weights = tf.concat([tf.reshape(w, [-1]) for w in self.trainable_variables[:-1]], axis=0)
+        current_weights = tf.concat(
+            [tf.reshape(w, [-1]) for w in self.trainable_variables[:-1]], axis=0
+        )
         sub_nets_init_weights = self.sub_nets_init_weights
         weights_diff = current_weights - sub_nets_init_weights
 
@@ -189,7 +211,6 @@ class L2ProjectionModel(keras.Model):
         # Return a dict mapping metric names to current value
         return {m.name: m.result() for m in self.metrics}
 
-
     @tf.function(reduce_retracing=True)
     def apply_l2_projection(self, weights_diff):
         """
@@ -198,23 +219,27 @@ class L2ProjectionModel(keras.Model):
         """
 
         # Projection of the weights
-        projected_weights = self.sub_nets_init_weights + tf.clip_by_norm(weights_diff, self.delta)
+        projected_weights = self.sub_nets_init_weights + tf.clip_by_norm(
+            weights_diff, self.delta
+        )
 
         # Reshape the projected vector to assign weights correctly
         start = 0
         for w in self.trainable_variables[:-1]:
             shape = w.shape
             size = tf.reduce_prod(shape)
-            w.assign(tf.reshape(projected_weights[start:start + size], shape))
+            w.assign(tf.reshape(projected_weights[start : start + size], shape))
             start += size
 
     def get_config(self):
-        return {"gamma": self.gamma,
-                "delta": self.delta,
-                "beta": self.beta,
-                "num_networks": self.num_networks,
-                "num_layers": self.num_layers,
-                "num_neurons": self.num_neurons}
+        return {
+            "gamma": self.gamma,
+            "delta": self.delta,
+            "beta": self.beta,
+            "num_networks": self.num_networks,
+            "num_layers": self.num_layers,
+            "num_neurons": self.num_neurons,
+        }
 
 
 def build_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
@@ -241,7 +266,7 @@ def build_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
     """
     # Initialize parameters
     if beta is None:
-        beta = 100*np.log(n)
+        beta = 100 * np.log(n)
     if num_layers is None:
         num_layers = math.ceil(np.log(n))
 
@@ -250,41 +275,50 @@ def build_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
 
     # Create input layer
     model.add(
-        Dense(units=num_neurons,
-              activation="relu",
-              kernel_initializer=RandomUniform(minval=-n, maxval=n),
-              bias_initializer=RandomUniform(minval=-n, maxval=n)
-              )
+        Dense(
+            units=num_neurons,
+            activation="relu",
+            kernel_initializer=RandomUniform(minval=-n, maxval=n),
+            bias_initializer=RandomUniform(minval=-n, maxval=n),
         )
+    )
 
     # Create num_layers-1 hidden layers
-    for _ in range(1, num_layers-1):
+    for _ in range(1, num_layers - 1):
         model.add(
-            Dense(units=num_neurons,
-                  activation="relu",
-                  kernel_initializer=RandomUniform(minval=-1, maxval=1),
-                  bias_initializer=RandomUniform(minval=-1, maxval=1)
-                  )
+            Dense(
+                units=num_neurons,
+                activation="relu",
+                kernel_initializer=RandomUniform(minval=-1, maxval=1),
+                bias_initializer=RandomUniform(minval=-1, maxval=1),
             )
+        )
 
     # Create output layer
     model.add(
-        Dense(units=1,
-              activation="relu",
-              kernel_initializer=RandomUniform(minval=-1, maxval=1),
-              bias_initializer=RandomUniform(minval=-1, maxval=1)
-              )
+        Dense(
+            units=1,
+            activation="relu",
+            kernel_initializer=RandomUniform(minval=-1, maxval=1),
+            bias_initializer=RandomUniform(minval=-1, maxval=1),
         )
+    )
 
     # Create tuncation layer
-    model.add(
-        TruncateLayer(beta=beta)
-        )
+    model.add(TruncateLayer(beta=beta))
 
     return model
 
 
-def create_model(train_shape, num_networks=None, num_layers=None, num_neurons=5,  beta=None, gamma=None, delta=1):
+def create_model(
+    train_shape,
+    num_networks=None,
+    num_layers=None,
+    num_neurons=5,
+    beta=None,
+    gamma=None,
+    delta=1,
+):
     """
     Creates a model with num_networks subnetworks with num_layers hidden layers
     each. The output is the average of the outputs of the subnetworks.
@@ -313,27 +347,29 @@ def create_model(train_shape, num_networks=None, num_layers=None, num_neurons=5,
 
     # Initialize parameters
     if num_networks is None:
-        num_networks = math.ceil(n**((np.log(n)**1.1 + 1)))
+        num_networks = math.ceil(n ** ((np.log(n) ** 1.1 + 1)))
     if num_layers is None:
         num_layers = math.ceil(np.log(n))
     if beta is None:
-        beta = 10*np.log(n)
+        beta = 10 * np.log(n)
     if gamma is None:
-        gamma = 10*n**(d/(2*(1+d)))
+        gamma = 10 * n ** (d / (2 * (1 + d)))
 
     # Create a list containing num_networks DNNs with num_layers hidden layers
-    sub_networks = [build_sub_network(n=n,
-                                      num_neurons=num_neurons,
-                                      num_layers=num_layers,
-                                      beta=beta)
-    for _ in range(num_networks)]
+    sub_networks = [
+        build_sub_network(
+            n=n, num_neurons=num_neurons, num_layers=num_layers, beta=beta
+        )
+        for _ in range(num_networks)
+    ]
 
     # Create the output layer
-    output_layer = Dense(units=1,
-                         use_bias=False,
-                         kernel_initializer=Zeros(),
-                         kernel_constraint=L1Projection(gamma)
-                         )
+    output_layer = Dense(
+        units=1,
+        use_bias=False,
+        kernel_initializer=Zeros(),
+        kernel_constraint=L1Projection(gamma),
+    )
 
     # Define the structure of the combined model
     inputs = Input(shape=input_shape)
@@ -342,20 +378,24 @@ def create_model(train_shape, num_networks=None, num_layers=None, num_neurons=5,
     outputs = output_layer(concatenated_outputs)
 
     # Create the model
-    model = L2ProjectionModel(inputs=inputs,
-                              outputs=outputs,
-                              delta=delta,
-                              sub_networks=sub_networks,
-                              output_layer=output_layer,
-                              num_networks=num_networks,
-                              num_layers=num_layers,
-                              num_neurons=num_neurons,
-                              beta=beta,
-                              gamma=gamma)
+    model = L2ProjectionModel(
+        inputs=inputs,
+        outputs=outputs,
+        delta=delta,
+        sub_networks=sub_networks,
+        output_layer=output_layer,
+        num_networks=num_networks,
+        num_layers=num_layers,
+        num_neurons=num_neurons,
+        beta=beta,
+        gamma=gamma,
+    )
 
     # One-time initialization of initial weights
     if model.sub_nets_init_weights is None:
-        sub_nets_init_weights = tf.concat([tf.reshape(w, [-1]) for w in model.trainable_variables[:-1]], axis=0)
+        sub_nets_init_weights = tf.concat(
+            [tf.reshape(w, [-1]) for w in model.trainable_variables[:-1]], axis=0
+        )
         model.sub_nets_init_weights = sub_nets_init_weights
 
     return model

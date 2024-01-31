@@ -10,6 +10,7 @@ Original file is located at
 import numpy as np
 import tensorflow as tf
 
+
 # Function to calculate IQR
 def calculate_iqr(data):
     q75, q25 = np.percentile(data, [75, 25])
@@ -17,7 +18,7 @@ def calculate_iqr(data):
 
 
 def iqr_median(my_func, x_dim=1, num_samples=10**5, num_repetitions=100):
-    """ Function to calculate the IQR for a given function """
+    """Function to calculate the IQR for a given function"""
 
     iqr_values = []
     # Generate random samples of x and calculate IQR for each set
@@ -30,6 +31,7 @@ def iqr_median(my_func, x_dim=1, num_samples=10**5, num_repetitions=100):
 
     return median_iqr
 
+
 # Generate random data samples
 def get_data(my_func, x_dim=1, num_samples=10**2, sigma=0.05):
     omega = iqr_median(my_func, x_dim=x_dim)
@@ -37,6 +39,7 @@ def get_data(my_func, x_dim=1, num_samples=10**2, sigma=0.05):
     x = np.random.rand(num_samples, x_dim)
     y = my_func(x) + sigma * omega * np.random.normal(0, 1, (num_samples, x_dim))
     return (x, y)
+
 
 # Optimized data loading
 def preprocess(x, y, batch_size=64, training=False):

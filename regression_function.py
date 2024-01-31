@@ -54,4 +54,3 @@ def m9(x):
     if x.size[1] != 3:
         raise ValueError("Input must be three dimensional")
     return 2 * x[0] ** 2 - 1.05 * x[0] ** 4 + x[0] ** 6 / 6 + x[0] * x[1] + x[1] ** 2
-
