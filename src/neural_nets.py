@@ -1,6 +1,6 @@
 import numpy as np
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.models import Sequential
+from keras.layers import Dense
+from keras.models import Sequential
 
 
 def create_network_1(input_dim, units=64, activation="relu"):
@@ -40,20 +40,20 @@ def create_network_3(input_dim, units=64, activation="relu"):
     return model
 
 
-def train_and_evaluate(model, train_data, test_data):
+def train_and_evaluate_nn(model, train_data, test_data):
     model.compile(optimizer="adam", loss="mse", metrics=["mae"])
     model.fit(train_data, epochs=15, batch_size=32, verbose=0)
     mse, mae = model.evaluate(test_data, verbose=0)
     return mse, mae
 
 
-def parameter_tuning(create_network, units, train_data, test_data, input_dim):
+def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim):
     best_mse = np.inf  # Set best_mse to infinity
     best_config = None  # Initialize best_config to None
 
     for unit in units:
         model = create_network(input_dim=input_dim, units=unit)
-        mse, mae = train_and_evaluate(model, train_data, test_data)
+        mse, mae = train_and_evaluate_nn(model, train_data, test_data)
         print(f"Unit: {unit}, MSE: {mse}, MAE: {mae}")
 
         # Check if current MSE is better than the best MSE so far
