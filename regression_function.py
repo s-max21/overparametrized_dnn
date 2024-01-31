@@ -4,20 +4,14 @@ import math
 
 # One dimensional test functions
 def m1(x):
-    if x.size[1] != 1:
-        raise ValueError("Input must be one dimensional")
     return 2 * (x / 2) ** 3 - 2 * x
 
 
 def m2(x):
-    if x.size[1] != 1:
-        raise ValueError("Input must be one dimensional")
     return 2 * np.abs(x) * np.sin(x * np.pi / 4)
 
 
 def m3(x):
-    if x.size[1] != 1:
-        raise ValueError("Input must be one dimensional")
     if x < 0:
         return -1
     else:
