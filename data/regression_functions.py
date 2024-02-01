@@ -41,4 +41,4 @@ def m7(x):
 
 # N-dim test function
 def m8(x):
-    return np.exp(np.linalg.norm(x))
+    return np.exp(np.linalg.norm(x, axis=1))
