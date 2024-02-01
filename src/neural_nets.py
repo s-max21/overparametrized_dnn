@@ -49,14 +49,12 @@ def create_network_3(input_dim, units=64, activation="relu"):
     return model
 
 
-def train_and_evaluate_nn(
-    model, train_data, test_data, epochs=15, batch_size=32, verbose=0
-):
+def train_and_evaluate_nn(model, train_data, test_data, epochs=15, batch_size=32):
     """
     Trains the model on the given data and evaluates its performance.
     """
     model.compile(optimizer="adam", loss="mse", metrics=["mae"])
-    model.fit(train_data, epochs=epochs, batch_size=batch_size, verbose=verbose)
+    model.fit(train_data, epochs=epochs, batch_size=batch_size)
     mse, mae = model.evaluate(test_data, verbose=0)
     return mse, mae
 
