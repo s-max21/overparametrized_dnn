@@ -38,6 +38,7 @@ def get_data(my_func, x_dim=1, num_samples=10**2, sigma=0.05):
 
     x = np.random.rand(num_samples, x_dim)
     y = my_func(x) + sigma * omega * np.random.normal(0, 1, (num_samples, 1))
+
     return (x, y)
 
 
