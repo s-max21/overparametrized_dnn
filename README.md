@@ -1,6 +1,6 @@
 # Deep Overparametrized Neural Network Comparison
 
-This repository contains code for creating a deep overparametrized neural network and comparing its performance to other regression models. The models are evaluated based on their mean squared error (MSE) and mean absolute error (MAE).
+This repository contains code for creating a deep overparametrized neural network (dnn) and comparing its performance to other regression models. The dnn consists of K fully connected neural networks with L layers and r neurons per layer and combines the truncated outputs of these K neural networks in a last layer. The models are evaluated based on their mean squared error (MSE) and mean absolute error (MAE).
 
 ## Models
 
