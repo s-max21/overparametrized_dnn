@@ -22,15 +22,8 @@ def train_and_evaluate_rbf(train_data, test_data, function="multiquadric"):
 
 def median_and_iqr_rbf(train_data, test_data, samples=50):
     mses = []  # Initialize empty list to store MSEs
-    maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
-        mse, mae = train_and_evaluate_rbf(train_data, test_data)
+        mse = train_and_evaluate_rbf(train_data, test_data)[0]
         mses.append(mse)
-        maes.append(mae)
 
-    return {
-        "median_mse": np.median(mses),
-        "median_mae": np.median(maes),
-        "iqr_mse": np.percentile(mses, 75) - np.percentile(mses, 25),
-        "iqr_mae": np.percentile(maes, 75) - np.percentile(maes, 25),
-    }
+    return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)
