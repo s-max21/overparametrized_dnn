@@ -4,6 +4,9 @@ from keras.models import Sequential
 
 
 def create_network_1(input_dim, units=64, activation="relu"):
+    """
+    Creates a neural network with one hidden layers and one output layer.
+    """
     model = Sequential(
         [
             Dense(units, activation=activation, input_shape=(input_dim,)),
@@ -14,6 +17,9 @@ def create_network_1(input_dim, units=64, activation="relu"):
 
 
 def create_network_2(input_dim, units=64, activation="relu"):
+    """
+    Creates a neural network with three hidden layers and one output layer.
+    """
     model = Sequential(
         [
             Dense(units, activation=activation, input_shape=(input_dim,)),
@@ -26,6 +32,9 @@ def create_network_2(input_dim, units=64, activation="relu"):
 
 
 def create_network_3(input_dim, units=64, activation="relu"):
+    """
+    Creates a neural network with six hidden layers and one output layer.
+    """
     model = Sequential(
         [
             Dense(units, activation=activation, input_shape=(input_dim,)),
@@ -40,14 +49,22 @@ def create_network_3(input_dim, units=64, activation="relu"):
     return model
 
 
-def train_and_evaluate_nn(model, train_data, test_data):
+def train_and_evaluate_nn(
+    model, train_data, test_data, epochs=15, batch_size=32, verbose=0
+):
+    """
+    Trains the model on the given data and evaluates its performance.
+    """
     model.compile(optimizer="adam", loss="mse", metrics=["mae"])
-    model.fit(train_data, epochs=15, batch_size=32, verbose=0)
+    model.fit(train_data, epochs=epochs, batch_size=batch_size, verbose=verbose)
     mse, mae = model.evaluate(test_data, verbose=0)
     return mse, mae
 
 
 def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim):
+    """
+    Tunes the model's parameters to find the best configuration.
+    """
     best_mse = np.inf  # Set best_mse to infinity
     best_config = None  # Initialize best_config to None
 
@@ -64,16 +81,28 @@ def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim)
 
 
 def median_and_iqr_nn(
-    create_network, train_data, test_data, input_dim, units=64, samples=50
+    create_network,
+    train_data,
+    test_data,
+    input_dim,
+    units=64,
+    samples=50,
+    epochs=15,
+    batch_size=32,
 ):
+    """
+    Calculates the median and interquartile range of the model's performance.
+    """
     mses = []  # Initialize empty list to store MSEs
     maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         model = create_network(input_dim=input_dim, units=units)
-        mse, mae = train_and_evaluate_nn(model, train_data, test_data)
+        mse, mae = train_and_evaluate_nn(
+            model, train_data, test_data, epochs=epochs, batch_size=batch_size
+        )
         mses.append(mse)
         maes.append(mae)
-        
+
     return {
         "median_mse": np.median(mses),
         "median_mae": np.median(maes),
