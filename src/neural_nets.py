@@ -92,18 +92,11 @@ def median_and_iqr_nn(
     Calculates the median and interquartile range of the model's performance.
     """
     mses = []  # Initialize empty list to store MSEs
-    maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         model = create_network(input_dim=input_dim, units=units)
-        mse, mae = train_and_evaluate_nn(
+        mse = train_and_evaluate_nn(
             model, train_data, test_data, epochs=epochs, batch_size=batch_size
-        )
+        )[0]
         mses.append(mse)
-        maes.append(mae)
 
-    return {
-        "median_mse": np.median(mses),
-        "median_mae": np.median(maes),
-        "iqr_mse": np.percentile(mses, 75) - np.percentile(mses, 25),
-        "iqr_mae": np.percentile(maes, 75) - np.percentile(maes, 25),
-    }
+    return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)
