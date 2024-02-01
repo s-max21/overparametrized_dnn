@@ -18,13 +18,13 @@ The following models are included in the comparison:
 
 Each model is defined in its own Python file in the repository. The `__init__.py` file imports the necessary functions from these files.
 
-To create and evaluate a model, use the `train_and_evaluate` function for that model. For example, to train and evaluate the DNN, use the `train_and_evaluate_dnn` function.
+To create and evaluate a model, use the `train_and_evaluate` function for that model. For example, to train and evaluate the different NNs, use the `train_and_evaluate_nn` function.
 
-To tune the parameters of a neural network, use the `parameter_tuning_nn` function.
+To tune the parameters of a neural network or the k-nearest neighbors, use the `parameter_tuning_nn` or the `parameter_tuning_knn` functions.
 
 ## Results
 
-The performance of the models is compared in terms of their MSE and MAE. The results are presented in a table in the `results.md` file.
+The performance of the models is compared in terms of their MSE and MAE. The results are presented in the `model_comparison.ipynb` notebook.
 
 ## Contributing
 
