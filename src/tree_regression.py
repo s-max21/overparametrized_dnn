@@ -1,6 +1,7 @@
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+import numpy as np
 
 
 def train_and_evaluate_tree(tree, train_data, test_data):
@@ -36,3 +37,22 @@ def tune_tree_parameters(train_data):
     best_params = grid_search.best_params_
 
     return best_params
+
+
+def median_and_iqr_tree(
+    max_depth, max_leaf_nodes, train_data, test_data, samples=50
+):
+    mses = []  # Initialize empty list to store MSEs
+    maes = []  # Initialize empty list to store MAEs
+    for _ in range(samples):
+        model = DecisionTreeRegressor(max_depth=max_depth, max_leaf_nodes=max_leaf_nodes)
+        mse, mae = train_and_evaluate_tree(model, train_data, test_data)
+        mses.append(mse)
+        maes.append(mae)
+        
+    return {
+        "median_mse": np.median(mses),
+        "median_mae": np.median(maes),
+        "iqr_mse": np.percentile(mses, 75) - np.percentile(mses, 25),
+        "iqr_mae": np.percentile(maes, 75) - np.percentile(maes, 25),
+    }

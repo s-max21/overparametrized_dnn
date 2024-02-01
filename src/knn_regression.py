@@ -28,3 +28,22 @@ def parameter_tuning_knn(units, train_data, test_data):
             best_mse = mse
             best_config = unit
     return {"best_config": best_config, "mse": mse}
+
+
+def median_and_iqr_knn(
+    train_data, test_data, unit, samples=50
+):
+    mses = []  # Initialize empty list to store MSEs
+    maes = []  # Initialize empty list to store MAEs
+    for _ in range(samples):
+        model = KNeighborsRegressor(n_neighbors=unit)
+        mse, mae = train_and_evaluate_knn(model, train_data, test_data)
+        mses.append(mse)
+        maes.append(mae)
+        
+    return {
+        "median_mse": np.median(mses),
+        "median_mae": np.median(maes),
+        "iqr_mse": np.percentile(mses, 75) - np.percentile(mses, 25),
+        "iqr_mae": np.percentile(maes, 75) - np.percentile(maes, 25),
+    }
