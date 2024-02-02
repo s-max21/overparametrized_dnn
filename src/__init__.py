@@ -11,6 +11,7 @@ from .knn_regression import (
     train_and_evaluate_knn,
     parameter_tuning_knn,
     median_and_iqr_knn,
+    generate_neighbors,
 )
 from .rbf_interpolation import train_and_evaluate_rbf
 from .tree_regression import (
