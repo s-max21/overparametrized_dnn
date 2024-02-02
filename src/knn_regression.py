@@ -30,11 +30,17 @@ def parameter_tuning_knn(units, train_data, test_data):
     return {"best_config": best_config, "mse": mse}
 
 
+def generate_neighbors(n_samples, num_values):
+    start = np.log2(1)
+    stop = np.log2(n_samples)
+    return np.unique(np.logspace(start, stop, num_values, base=2, dtype=int)).tolist()
+
+
 def median_and_iqr_knn(train_data, test_data, unit, samples=50):
     mses = []  # Initialize empty list to store MSEs
     for _ in range(samples):
         model = KNeighborsRegressor(n_neighbors=unit)
-        mse, mae = train_and_evaluate_knn(model, train_data, test_data)[0]
+        mse = train_and_evaluate_knn(model, train_data, test_data)[0]
         mses.append(mse)
 
     return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)

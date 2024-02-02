@@ -11,7 +11,8 @@ def create_network_1(input_dim, units=64, activation="relu"):
         [
             Dense(units, activation=activation, input_shape=(input_dim,)),
             Dense(1, activation="linear"),
-        ]
+        ],
+        name="one_hidden_layer",
     )
     return model
 
@@ -26,7 +27,8 @@ def create_network_2(input_dim, units=64, activation="relu"):
             Dense(units, activation=activation),
             Dense(units, activation=activation),
             Dense(1, activation="linear"),
-        ]
+        ],
+        name="three_hidden_layers",
     )
     return model
 
@@ -44,7 +46,8 @@ def create_network_3(input_dim, units=64, activation="relu"):
             Dense(units, activation=activation),
             Dense(units, activation=activation),
             Dense(1, activation="linear"),
-        ]
+        ],
+        name="six_hidden_layers",
     )
     return model
 
