@@ -13,6 +13,8 @@ import tensorflow as tf
 
 # Function to calculate IQR
 def calculate_iqr(data):
+    """Function to calculate the IQR"""
+    
     q75, q25 = np.percentile(data, [75, 25])
     return q75 - q25
 
@@ -33,7 +35,10 @@ def iqr_median(my_func, x_dim=1, num_samples=10**5, num_repetitions=100):
 
 
 # Generate random data samples
-def get_data(my_func, x_dim=1, num_samples=10**2, sigma=0.05):
+def get_data(my_func, num_samples=10**2, sigma=0.05):
+    """Function to generate random data samples"""
+
+    x_dim = my_func.expected_dim
     omega = iqr_median(my_func, x_dim=x_dim)
 
     x = np.random.rand(num_samples, x_dim)
@@ -44,6 +49,8 @@ def get_data(my_func, x_dim=1, num_samples=10**2, sigma=0.05):
 
 # Optimized data loading
 def preprocess(x, y, batch_size=64, training=False):
+    """Function to preprocess data for training"""
+
     data = tf.data.Dataset.from_tensor_slices((x, y))
 
     if training:
