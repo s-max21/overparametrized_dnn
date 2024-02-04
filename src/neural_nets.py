@@ -1,6 +1,7 @@
 import numpy as np
 from keras.layers import Dense
 from keras.models import Sequential
+from data.data_generator import get_data, preprocess
 
 
 def create_network_1(input_dim, units=64, activation="relu"):
@@ -83,9 +84,8 @@ def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim)
 
 def median_and_iqr_nn(
     create_network,
-    train_data,
-    test_data,
     input_dim,
+    regression_func,
     units=64,
     samples=50,
     epochs=15,
@@ -96,6 +96,17 @@ def median_and_iqr_nn(
     """
     mses = []  # Initialize empty list to store MSEs
     for _ in range(samples):
+        x_train, y_train = get_data(
+            regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
+        )
+        x_test, y_test = get_data(
+            regression_func, x_dim=input_dim, num_samples=10**5, sigma=0.05
+        )
+
+        # Preprocess data
+        train_data = preprocess(x_train, y_train, training=True)
+        test_data = preprocess(x_test, y_test, training=False)
+
         model = create_network(input_dim=input_dim, units=units)
         mse = train_and_evaluate_nn(
             model, train_data, test_data, epochs=epochs, batch_size=batch_size

@@ -12,17 +12,19 @@ def add_expected_dim(dim):
 # One dimensional test functions
 @add_expected_dim(1)
 def m1(x):
-    return np.abs((4 * x - 2 * x**2) / (0.5 + x**2))
+    return np.squeeze(np.abs((4 * x - 2 * x**2) / (0.5 + x**2)))
 
 
 @add_expected_dim(1)
 def m2(x):
-    return np.sin(2 * np.pi * x) + 0.5 * x**2 + 0.2 * x + 0.1 * np.sin(5 * np.pi * x)
+    return np.squeeze(
+        np.sin(2 * np.pi * x) + 0.5 * x**2 + 0.2 * x + 0.1 * np.sin(5 * np.pi * x)
+    )
 
 
 @add_expected_dim(1)
 def m3(x):
-    return np.where(x > 0.5, 5, -1)
+    return np.squeeze(np.where(x > 0.5, 5, -1))
 
 
 # Two dimensional test function
