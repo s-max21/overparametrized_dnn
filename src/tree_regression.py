@@ -1,7 +1,6 @@
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import numpy as np
 from data.data_generator import get_data
 
 

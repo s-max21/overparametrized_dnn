@@ -5,17 +5,17 @@ from .neural_nets import (
     create_network_3,
     train_and_evaluate_nn,
     parameter_tuning_nn,
-    median_and_iqr_nn,
+    runs_nn,
 )
 from .knn_regression import (
     train_and_evaluate_knn,
     parameter_tuning_knn,
-    median_and_iqr_knn,
+    runs_knn,
     generate_neighbors,
 )
 from .rbf_interpolation import train_and_evaluate_rbf
 from .tree_regression import (
     train_and_evaluate_tree,
     tune_tree_parameters,
-    median_and_iqr_tree,
+    runs_tree,
 )
