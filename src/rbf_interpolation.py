@@ -21,8 +21,9 @@ def train_and_evaluate_rbf(train_data, test_data, function="multiquadric"):
     return mse, mae
 
 
-def median_and_iqr_rbf(input_dim, regression_func, samples=50):
+def runs_rbf(input_dim, regression_func, samples=50):
     mses = []  # Initialize empty list to store MSEs
+    maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         x_train, y_train = get_data(
             regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
@@ -35,7 +36,8 @@ def median_and_iqr_rbf(input_dim, regression_func, samples=50):
         train_data = (x_train, y_train)
         test_data = (x_test, y_test)
 
-        mse = train_and_evaluate_rbf(train_data, test_data)[0]
+        mse, mae = train_and_evaluate_rbf(train_data, test_data)
         mses.append(mse)
+        maes.append(mae)
 
-    return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)
+    return mses, maes

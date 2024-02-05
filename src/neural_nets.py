@@ -82,7 +82,7 @@ def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim)
     return {"best_config": best_config, "mse": mse}
 
 
-def median_and_iqr_nn(
+def runs_nn(
     create_network,
     input_dim,
     regression_func,
@@ -95,6 +95,7 @@ def median_and_iqr_nn(
     Calculates the median and interquartile range of the model's performance.
     """
     mses = []  # Initialize empty list to store MSEs
+    maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         x_train, y_train = get_data(
             regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
@@ -108,9 +109,10 @@ def median_and_iqr_nn(
         test_data = preprocess(x_test, y_test, training=False)
 
         model = create_network(input_dim=input_dim, units=units)
-        mse = train_and_evaluate_nn(
+        mse, mae = train_and_evaluate_nn(
             model, train_data, test_data, epochs=epochs, batch_size=batch_size
-        )[0]
+        )
         mses.append(mse)
+        maes.append(mae)
 
-    return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)
+    return mses, maes

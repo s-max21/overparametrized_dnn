@@ -37,8 +37,9 @@ def generate_neighbors(n_samples, num_values):
     return np.unique(np.logspace(start, stop, num_values, base=2, dtype=int)).tolist()
 
 
-def median_and_iqr_knn(unit, input_dim, regression_func, samples=50):
+def runs_knn(unit, input_dim, regression_func, samples=50):
     mses = []  # Initialize empty list to store MSEs
+    maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         x_train, y_train = get_data(
             regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
@@ -52,7 +53,8 @@ def median_and_iqr_knn(unit, input_dim, regression_func, samples=50):
         test_data = (x_test, y_test)
 
         model = KNeighborsRegressor(n_neighbors=unit)
-        mse = train_and_evaluate_knn(model, train_data, test_data)[0]
+        mse, mae = train_and_evaluate_knn(model, train_data, test_data)
         mses.append(mse)
+        maes.append(mae)
 
-    return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)
+    return mses, maes

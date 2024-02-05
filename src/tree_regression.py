@@ -40,10 +40,11 @@ def tune_tree_parameters(train_data):
     return best_params
 
 
-def median_and_iqr_tree(
+def runs_tree(
     max_depth, max_leaf_nodes, input_dim, regression_func, samples=50
 ):
     mses = []  # Initialize empty list to store MSEs
+    maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         x_train, y_train = get_data(
             regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
@@ -59,7 +60,8 @@ def median_and_iqr_tree(
         model = DecisionTreeRegressor(
             max_depth=max_depth, max_leaf_nodes=max_leaf_nodes
         )
-        mse = train_and_evaluate_tree(model, train_data, test_data)[0]
+        mse, mae = train_and_evaluate_tree(model, train_data, test_data)
         mses.append(mse)
+        maes.append(mae)
 
-    return np.median(mses), np.percentile(mses, 75) - np.percentile(mses, 25)
+    return mses, maes
