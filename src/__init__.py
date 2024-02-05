@@ -13,7 +13,7 @@ from .knn_regression import (
     runs_knn,
     generate_neighbors,
 )
-from .rbf_interpolation import train_and_evaluate_rbf
+from .rbf_interpolation import train_and_evaluate_rbf, runs_rbf
 from .tree_regression import (
     train_and_evaluate_tree,
     tune_tree_parameters,
