@@ -9,7 +9,7 @@ def train_and_evaluate_rbf(train_data, test_data, function="multiquadric"):
     x_test, y_test = test_data
 
     # Create RBF model
-    rbf = Rbf(*x_train, y_train, function=function)
+    rbf = Rbf(*x_train.T, y_train, function=function)
 
     # Predict on test data
     y_pred = rbf(*x_test)

@@ -15,7 +15,7 @@ def train_and_evaluate_tree(tree, train_data, test_data):
     return mse, mae
 
 
-def tune_tree_parameters(train_data):
+def parameter_tuning_tree(train_data):
     x_train, y_train = train_data
 
     # Define the parameter grid

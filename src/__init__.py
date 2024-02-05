@@ -16,6 +16,6 @@ from .knn_regression import (
 from .rbf_interpolation import train_and_evaluate_rbf, runs_rbf
 from .tree_regression import (
     train_and_evaluate_tree,
-    tune_tree_parameters,
+    parameter_tuning_tree,
     runs_tree,
 )
