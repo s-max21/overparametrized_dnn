@@ -12,7 +12,7 @@ def train_and_evaluate_rbf(train_data, test_data, function="multiquadric"):
     rbf = Rbf(*x_train.T, y_train, function=function)
 
     # Predict on test data
-    y_pred = rbf(*x_test)
+    y_pred = rbf(*x_test.T)
 
     # Calculate MSE and MAE
     mse = mean_squared_error(y_test, y_pred)
