@@ -1,10 +1,11 @@
 import numpy as np
 from keras.layers import Dense
 from keras.models import Sequential
+import keras_tuner as kt
 from data.data_generator import get_data, preprocess
 
 
-def create_network_1(input_dim, units=64, activation="relu"):
+def create_neural_1(input_dim, units=64, activation="relu"):
     """
     Creates a neural network with one hidden layers and one output layer.
     """
@@ -15,10 +16,16 @@ def create_network_1(input_dim, units=64, activation="relu"):
         ],
         name="one_hidden_layer",
     )
+
+    model.compile(
+        optimizer="adam",
+        loss="mse",
+        metrics=["mae"])
+    
     return model
 
 
-def create_network_2(input_dim, units=64, activation="relu"):
+def create_neural_3(input_dim, units=64, activation="relu"):
     """
     Creates a neural network with three hidden layers and one output layer.
     """
@@ -31,10 +38,16 @@ def create_network_2(input_dim, units=64, activation="relu"):
         ],
         name="three_hidden_layers",
     )
+
+    model.compile(
+        optimizer="adam",
+        loss="mse",
+        metrics=["mae"])
+    
     return model
 
 
-def create_network_3(input_dim, units=64, activation="relu"):
+def create_neural_6(input_dim, units=64, activation="relu"):
     """
     Creates a neural network with six hidden layers and one output layer.
     """
@@ -50,6 +63,12 @@ def create_network_3(input_dim, units=64, activation="relu"):
         ],
         name="six_hidden_layers",
     )
+
+    model.compile(
+        optimizer="adam",
+        loss="mse",
+        metrics=["mae"])
+    
     return model
 
 
@@ -82,11 +101,38 @@ def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim)
     return {"best_config": best_config, "mse": mse}
 
 
+def parameter_tuning(create_neural_network, train_data, input_dim, min_value, max_value, step):
+
+    # Define the model-building function with a single hyperparameter for all layers
+    def build_model(hp):
+        hp_units = hp.Int('units', min_value=min_value, max_value=max_value, step=step)
+        model = create_neural_network(units = hp_units, input_dim=input_dim)
+
+        return model
+
+    # Initialize the tuner
+    tuner = kt.GridSearch(
+        build_model,
+        objective='val_mean_squared_error' # Objective is to minimize validation mean squared error
+        )  
+    
+    # Get the training data
+    x_train, y_train = train_data
+
+    # Start the hyperparameter search
+    tuner.search(x_train, y_train, epochs=100, validation_split=0.2)
+
+    # Get the optimal hyperparameters
+    best_hps = tuner.get_best_hyperparameters()[0]
+
+    return best_hps
+
+
 def runs_nn(
-    create_network,
+    create_neural_network,
     input_dim,
     regression_func,
-    units=64,
+    units,
     samples=50,
     epochs=15,
     batch_size=32,
@@ -108,7 +154,7 @@ def runs_nn(
         train_data = preprocess(x_train, y_train, training=True)
         test_data = preprocess(x_test, y_test, training=False)
 
-        model = create_network(input_dim=input_dim, units=units)
+        model = create_neural_network(input_dim=input_dim, units=units)
         mse, mae = train_and_evaluate_nn(
             model, train_data, test_data, epochs=epochs, batch_size=batch_size
         )

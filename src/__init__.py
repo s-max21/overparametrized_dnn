@@ -1,8 +1,8 @@
 from .my_dnn import create_dnn
 from .neural_nets import (
-    create_network_1,
-    create_network_2,
-    create_network_3,
+    create_neural_1,
+    create_neural_3,
+    create_neural_6,
     train_and_evaluate_nn,
     parameter_tuning_nn,
     runs_nn,
@@ -13,7 +13,7 @@ from .knn_regression import (
     runs_knn,
     generate_neighbors,
 )
-from .rbf_interpolation import train_and_evaluate_rbf, runs_rbf
+
 from .tree_regression import (
     train_and_evaluate_tree,
     parameter_tuning_tree,
