@@ -1,7 +1,6 @@
 import numpy as np
 from keras.layers import Dense, Input
 from keras.models import Sequential
-import keras_tuner as kt
 from data.data_generator import get_data, preprocess
 
 
