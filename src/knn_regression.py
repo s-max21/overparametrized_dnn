@@ -28,7 +28,7 @@ def parameter_tuning_knn(units, train_data, test_data):
         if best_mse > mse:
             best_mse = mse
             best_config = unit
-    return {"best_config": best_config, "mse": mse}
+    return {"best_config": best_config, "mse": best_mse}
 
 
 def generate_neighbors(n_samples, num_values):
@@ -42,7 +42,7 @@ def runs_knn(unit, input_dim, regression_func, samples=50):
     maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         x_train, y_train = get_data(
-            regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
+            regression_func, x_dim=input_dim, num_samples=100, sigma=0.05
         )
         x_test, y_test = get_data(
             regression_func, x_dim=input_dim, num_samples=10**5, sigma=0.05

@@ -99,7 +99,7 @@ def parameter_tuning_nn(create_neural_network, units, train_data, test_data, inp
         if best_mse > mse:
             best_mse = mse
             best_hp = unit
-    return {"best_hp": best_hp, "mse": mse}
+    return {"best_hp": best_hp, "mse": best_mse}
 
 
 def runs_nn(
