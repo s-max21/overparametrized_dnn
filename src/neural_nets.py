@@ -83,7 +83,7 @@ def train_and_evaluate_nn(model, train_data, test_data, epochs=75):
     return mse, mae
 
 
-def parameter_tuning_nn(create_neural_network, units, train_data, test_data, input_dim):
+def parameter_tuning_nn(create_neural_network, units, train_data, test_data, input_dim, epochs):
     """
     Tunes the model's parameters to find the best hyperparameters.
     """
@@ -92,7 +92,7 @@ def parameter_tuning_nn(create_neural_network, units, train_data, test_data, inp
 
     for unit in units:
         model = create_neural_network(input_dim=input_dim, units=unit)
-        mse, mae = train_and_evaluate_nn(model, train_data, test_data)
+        mse, mae = train_and_evaluate_nn(model, train_data, test_data, epochs=epochs)
         print(f"Unit: {unit}, MSE: {mse}, MAE: {mae}")
 
         # Check if current MSE is better than the best MSE so far
