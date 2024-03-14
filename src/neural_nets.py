@@ -72,17 +72,16 @@ def create_neural_6(input_dim, units=64, activation="relu"):
     return model
 
 
-def train_and_evaluate_nn(model, train_data, test_data, epochs=15, batch_size=32):
+def train_and_evaluate_nn(model, train_data, test_data, epochs=75):
     """
     Trains the model on the given data and evaluates its performance.
     """
-    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
-    model.fit(train_data, epochs=epochs, batch_size=batch_size, verbose=0)
+    model.fit(train_data, epochs=epochs, verbose=0)
     mse, mae = model.evaluate(test_data, verbose=0)
     return mse, mae
 
 
-def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim):
+def parameter_tuning_nn(create_neural_network, units, train_data, test_data, input_dim):
     """
     Tunes the model's parameters to find the best configuration.
     """
@@ -90,7 +89,7 @@ def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim)
     best_config = None  # Initialize best_config to None
 
     for unit in units:
-        model = create_network(input_dim=input_dim, units=unit)
+        model = create_neural_network(input_dim=input_dim, units=unit)
         mse, mae = train_and_evaluate_nn(model, train_data, test_data)
         print(f"Unit: {unit}, MSE: {mse}, MAE: {mae}")
 
