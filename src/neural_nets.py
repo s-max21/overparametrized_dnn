@@ -1,5 +1,5 @@
 import numpy as np
-from keras.layers import Dense
+from keras.layers import Dense, Input
 from keras.models import Sequential
 import keras_tuner as kt
 from data.data_generator import get_data, preprocess
@@ -11,7 +11,8 @@ def create_neural_1(input_dim, units=64, activation="relu"):
     """
     model = Sequential(
         [
-            Dense(units, activation=activation, input_shape=(input_dim,)),
+            Input(shape=(input_dim,)),
+            Dense(units, activation=activation),
             Dense(1, activation="linear"),
         ],
         name="one_hidden_layer",
@@ -31,7 +32,8 @@ def create_neural_3(input_dim, units=64, activation="relu"):
     """
     model = Sequential(
         [
-            Dense(units, activation=activation, input_shape=(input_dim,)),
+            Input(shape=(input_dim,)),
+            Dense(units, activation=activation),
             Dense(units, activation=activation),
             Dense(units, activation=activation),
             Dense(1, activation="linear"),
@@ -53,7 +55,8 @@ def create_neural_6(input_dim, units=64, activation="relu"):
     """
     model = Sequential(
         [
-            Dense(units, activation=activation, input_shape=(input_dim,)),
+            Input(shape=(input_dim,)),
+            Dense(units, activation=activation),
             Dense(units, activation=activation),
             Dense(units, activation=activation),
             Dense(units, activation=activation),
@@ -83,10 +86,10 @@ def train_and_evaluate_nn(model, train_data, test_data, epochs=75):
 
 def parameter_tuning_nn(create_neural_network, units, train_data, test_data, input_dim):
     """
-    Tunes the model's parameters to find the best configuration.
+    Tunes the model's parameters to find the best hyperparameters.
     """
     best_mse = np.inf  # Set best_mse to infinity
-    best_config = None  # Initialize best_config to None
+    best_hp = None  # Initialize best_hp to None
 
     for unit in units:
         model = create_neural_network(input_dim=input_dim, units=unit)
@@ -96,33 +99,8 @@ def parameter_tuning_nn(create_neural_network, units, train_data, test_data, inp
         # Check if current MSE is better than the best MSE so far
         if best_mse > mse:
             best_mse = mse
-            best_config = unit
-    return {"best_config": best_config, "mse": mse}
-
-
-def parameter_tuning(create_neural_network, train_data, val_data, input_dim, min_value, max_value, step):
-
-    # Define the model-building function with a single hyperparameter for all layers
-    def build_model(hp):
-        hp_units = hp.Int('units', min_value=min_value, max_value=max_value, step=step)
-        model = create_neural_network(units = hp_units, input_dim=input_dim)
-
-        return model
-
-    # Initialize the tuner
-    tuner = kt.GridSearch(
-        build_model,
-        objective='val_loss' # Objective is to minimize validation mean squared error
-        )  
-    
-
-    # Start the hyperparameter search
-    tuner.search(train_data, epochs=100, validation_data=val_data)
-
-    # Get the optimal hyperparameters
-    best_hps = tuner.get_best_hyperparameters()[0]
-
-    return best_hps
+            best_hp = unit
+    return {"best_hp": best_hp, "mse": mse}
 
 
 def runs_nn(
@@ -141,19 +119,19 @@ def runs_nn(
     maes = []  # Initialize empty list to store MAEs
     for _ in range(samples):
         x_train, y_train = get_data(
-            regression_func, x_dim=input_dim, num_samples=1000, sigma=0.05
+            regression_func, x_dim=input_dim, num_samples=100, sigma=0.05
         )
         x_test, y_test = get_data(
             regression_func, x_dim=input_dim, num_samples=10**5, sigma=0.05
         )
 
         # Preprocess data
-        train_data = preprocess(x_train, y_train, training=True)
-        test_data = preprocess(x_test, y_test, training=False)
+        train_data = preprocess(x_train, y_train, batch_size=batch_size, training=True)
+        test_data = preprocess(x_test, y_test, batch_size=batch_size, training=False)
 
         model = create_neural_network(input_dim=input_dim, units=units)
         mse, mae = train_and_evaluate_nn(
-            model, train_data, test_data, epochs=epochs, batch_size=batch_size
+            model, train_data, test_data, epochs=epochs
         )
         mses.append(mse)
         maes.append(mae)
