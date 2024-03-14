@@ -113,7 +113,7 @@ def parameter_tuning(create_neural_network, train_data, val_data, input_dim, min
     # Initialize the tuner
     tuner = kt.GridSearch(
         build_model,
-        objective='val_mean_squared_error' # Objective is to minimize validation mean squared error
+        objective='val_loss' # Objective is to minimize validation mean squared error
         )  
     
 
