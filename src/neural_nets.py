@@ -101,7 +101,7 @@ def parameter_tuning_nn(create_network, units, train_data, test_data, input_dim)
     return {"best_config": best_config, "mse": mse}
 
 
-def parameter_tuning(create_neural_network, train_data, input_dim, min_value, max_value, step):
+def parameter_tuning(create_neural_network, train_data, val_data, input_dim, min_value, max_value, step):
 
     # Define the model-building function with a single hyperparameter for all layers
     def build_model(hp):
@@ -116,11 +116,9 @@ def parameter_tuning(create_neural_network, train_data, input_dim, min_value, ma
         objective='val_mean_squared_error' # Objective is to minimize validation mean squared error
         )  
     
-    # Get the training data
-    x_train, y_train = train_data
 
     # Start the hyperparameter search
-    tuner.search(x_train, y_train, epochs=100, validation_split=0.2)
+    tuner.search(train_data, epochs=100, validation_data=val_data)
 
     # Get the optimal hyperparameters
     best_hps = tuner.get_best_hyperparameters()[0]
