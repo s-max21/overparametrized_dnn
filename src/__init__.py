@@ -5,6 +5,7 @@ from .neural_nets import (
     create_neural_6,
     train_and_evaluate_nn,
     parameter_tuning_nn,
+    parameter_tuning,
     runs_nn,
 )
 from .knn_regression import (
