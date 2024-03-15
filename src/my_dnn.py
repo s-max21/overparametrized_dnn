@@ -227,7 +227,7 @@ class L2ProjectionModel(keras.Model):
         }
 
 
-def create_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
+def create_sub_network(n=100, num_neurons=5, num_layers=None, beta=None):
     """
     Creates a submodel with num_layers hidden layers and a truncation layer as
     the last layer.
