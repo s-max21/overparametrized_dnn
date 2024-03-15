@@ -1,17 +1,10 @@
 
 # Import necessary librarys
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from keras.layers import Layer, Input, Dense, Concatenate
 from keras.initializers import RandomUniform, Zeros
-from keras.callbacks import (
-    TensorBoard,
-    ModelCheckpoint,
-    EarlyStopping,
-    ReduceLROnPlateau,
-)
-import math
+
 
 
 class TruncateLayer(Layer):
@@ -256,11 +249,6 @@ def create_sub_network(n=400, num_neurons=5, num_layers=None, beta=None):
         submodel containing a truncation layer as last layer
 
     """
-    # Initialize parameters
-    if beta is None:
-        beta = 100 * np.log(n)
-    if num_layers is None:
-        num_layers = math.ceil(np.log(n))
 
     # Define submodel
     model = keras.models.Sequential()
@@ -336,16 +324,6 @@ def create_dnn(
     # Define input shape based on dimension of input variable
     n, d = train_shape
     input_shape = (d,)
-
-    # Initialize parameters
-    if num_networks is None:
-        num_networks = math.ceil(n ** ((np.log(n) ** 1.1 + 1)))
-    if num_layers is None:
-        num_layers = math.ceil(np.log(n))
-    if beta is None:
-        beta = 10 * np.log(n)
-    if gamma is None:
-        gamma = 10 * n ** (d / (2 * (1 + d)))
 
     # Create a list containing num_networks DNNs with num_layers hidden layers
     sub_networks = [

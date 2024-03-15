@@ -17,11 +17,8 @@ def create_neural_1(input_dim, units=64, activation="relu"):
         name="one_hidden_layer",
     )
 
-    model.compile(
-        optimizer="adam",
-        loss="mse",
-        metrics=["mae"])
-    
+    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+
     return model
 
 
@@ -40,11 +37,8 @@ def create_neural_3(input_dim, units=64, activation="relu"):
         name="three_hidden_layers",
     )
 
-    model.compile(
-        optimizer="adam",
-        loss="mse",
-        metrics=["mae"])
-    
+    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+
     return model
 
 
@@ -66,11 +60,8 @@ def create_neural_6(input_dim, units=64, activation="relu"):
         name="six_hidden_layers",
     )
 
-    model.compile(
-        optimizer="adam",
-        loss="mse",
-        metrics=["mae"])
-    
+    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+
     return model
 
 
@@ -83,7 +74,9 @@ def train_and_evaluate_nn(model, train_data, test_data, epochs=75):
     return mse, mae
 
 
-def parameter_tuning_nn(create_neural_network, units, train_data, test_data, input_dim, epochs):
+def parameter_tuning_nn(
+    create_neural_network, units, train_data, test_data, input_dim, epochs
+):
     """
     Tunes the model's parameters to find the best hyperparameters.
     """
@@ -129,9 +122,7 @@ def runs_nn(
         test_data = preprocess(x_test, y_test, batch_size=batch_size, training=False)
 
         model = create_neural_network(input_dim=input_dim, units=units)
-        mse, mae = train_and_evaluate_nn(
-            model, train_data, test_data, epochs=epochs
-        )
+        mse, mae = train_and_evaluate_nn(model, train_data, test_data, epochs=epochs)
         mses.append(mse)
         maes.append(mae)
 
