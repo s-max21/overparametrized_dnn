@@ -64,7 +64,6 @@ class L1Projection(keras.constraints.Constraint):
     def __call__(self, w):
         return self.apply_l1_projection(w)
 
-    @tf.function(reduce_retracing=True)
     def apply_l1_projection(self, w):
         # Test if projection necessary
         if tf.norm(w, ord=1) <= self.gamma:
