@@ -83,10 +83,10 @@ class L1Projection(keras.constraints.Constraint):
             cond = tf.cast(svp - self.gamma, tf.float64) / tf.range(
                 1, tf.size(u) + 1, dtype=tf.float64
             )
-            k = tf.where(tf.cast(u, tf.float64) > cond)[-1][0]
+            k = tf.reduce_max(tf.where(tf.cast(u, tf.float64) > cond))
 
             # Compute the threshold value
-            theta = tf.cast(svp[k] - self.gamma, tf.float32) / tf.cast(
+            theta = tf.cast(tf.gather(svp,k) - self.gamma, tf.float32) / tf.cast(
                 k + 1, tf.float32
             )
 
