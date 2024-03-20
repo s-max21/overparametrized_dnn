@@ -55,46 +55,37 @@ class L1Projection(keras.constraints.Constraint):
 
     def __init__(self, gamma):
         super(L1Projection, self).__init__()
-        self.gamma = tf.constant(gamma, dtype=tf.float32)
-
         # Error handling:
-        if self.gamma is None:
+        if gamma is None:
             raise ValueError("Missing required argument gamma.")
+        self.gamma = tf.constant(gamma, dtype=tf.float32)
 
     def __call__(self, w):
         return self.apply_l1_projection(w)
 
     @tf.function
     def apply_l1_projection(self, w):
-        # Test if projection necessary
         if tf.norm(w, ord=1) <= self.gamma:
             return w
-        else:
-            # Apply L1-projection on weight vector w
-            w_shape = w.shape
-            w_flat = tf.reshape(w, [-1])
-            abs_w_flat = tf.abs(w_flat)
+        # Apply L1-projection on weight vector w
+        abs_w = tf.abs(w)
 
-            # Compute cumulative sum of the sorted absolute weights
-            u = tf.sort(abs_w_flat, direction="DESCENDING")
-            svp = tf.cumsum(u)
+        # Compute cumulative sum of the sorted absolute weights
+        u = tf.sort(abs_w, direction="DESCENDING")
+        svp = tf.cumsum(u)
 
-            # Find the position where the condition is violated for the first time
-            cond = tf.cast(svp - self.gamma, tf.float64) / tf.range(
-                1, tf.size(u) + 1, dtype=tf.float64
-            )
-            k = tf.reduce_max(tf.where(tf.cast(u, tf.float64) > cond))
+        # Find the position where the condition is violated for the first time
+        cond = tf.cast(svp - self.gamma, tf.float64) / tf.range(
+            1, tf.size(u) + 1, dtype=tf.float64
+        )
+        k = tf.reduce_max(tf.where(tf.cast(u, tf.float64) > cond))
 
-            # Compute the threshold value
-            theta = tf.cast(tf.gather(svp,k) - self.gamma, tf.float32) / tf.cast(
-                k + 1, tf.float32
-            )
+        # Compute the threshold value
+        theta = tf.cast(tf.gather(svp,k) - self.gamma, tf.float32) / tf.cast(
+            k + 1, tf.float32
+        )
 
-            # Apply the thresholding operation
-            projected_weights_flat = tf.math.sign(w_flat) * tf.maximum(
-                abs_w_flat - theta, 0
-            )
-            return tf.reshape(projected_weights_flat, shape=w_shape)
+        return tf.math.sign(w) * tf.maximum(abs_w - theta, 0)
 
     def get_config(self):
         return {"gamma": self.gamma}
