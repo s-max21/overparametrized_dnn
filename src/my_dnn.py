@@ -108,6 +108,13 @@ class L2ProjectionModel(keras.Model):
     def __init__(
         self,
         delta=1,
+        sub_networks=None,
+        output_layer=None,
+        num_networks=None,
+        num_layers=None,
+        num_neurons=None,
+        beta=None,
+        gamma=None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -115,15 +122,11 @@ class L2ProjectionModel(keras.Model):
         self.init_vars = None
 
         # Optional parameters for analysis
-        self.sub_networks = kwargs.get('sub_networks', None)
-        self.output_layer = kwargs.get('output_layer', None)
-        self.num_networks = kwargs.get('num_networks', None)
-        self.num_layers = kwargs.get('num_layers', None)
-        self.num_neurons = kwargs.get('num_neurons', None)
-        
-        
-        gamma = kwargs.get('gamma', None)
-        beta = kwargs.get('beta', None)
+        self.sub_networks = sub_networks
+        self.output_layer = output_layer
+        self.num_networks = num_networks
+        self.num_layers = num_layers
+        self.num_neurons = num_neurons
         self.beta = tf.constant(beta) if beta is not None else None
         self.gamma = tf.constant(gamma) if gamma is not None else None
 
