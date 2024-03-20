@@ -1,10 +1,8 @@
-
 # Import necessary librarys
 import tensorflow as tf
 from tensorflow import keras
 from keras.layers import Layer, Input, Dense, Concatenate
 from keras.initializers import RandomUniform, Zeros
-
 
 
 class TruncateLayer(Layer):
@@ -25,7 +23,7 @@ class TruncateLayer(Layer):
     """
 
     def __init__(self, beta):
-        super(TruncateLayer, self).__init__()
+        super().__init__()
         self.beta = tf.constant(beta, dtype=tf.float32)
 
     def call(self, inputs):
@@ -54,7 +52,7 @@ class L1Projection(keras.constraints.Constraint):
     """
 
     def __init__(self, gamma):
-        super(L1Projection, self).__init__()
+        super().__init__()
         # Error handling:
         if gamma is None:
             raise ValueError("Missing required argument gamma.")
@@ -81,7 +79,7 @@ class L1Projection(keras.constraints.Constraint):
         k = tf.reduce_max(tf.where(tf.cast(u, tf.float64) > cond))
 
         # Compute the threshold value
-        theta = tf.cast(tf.gather(svp,k) - self.gamma, tf.float32) / tf.cast(
+        theta = tf.cast(tf.gather(svp, k) - self.gamma, tf.float32) / tf.cast(
             k + 1, tf.float32
         )
 
@@ -100,7 +98,7 @@ class L2ProjectionModel(keras.Model):
     Parameters
     ----------
     delta: float
-        The value to specify radius of the L2-ball around 'sub_nets_init_weights'.
+        The value to specify radius of the L2-ball around 'init_vars'.
         The weights will be projected on the feasible set where the L2-norm of
         the difference between current weight vector and the initial weight
         vector is smaller or equal to delta.
@@ -109,40 +107,33 @@ class L2ProjectionModel(keras.Model):
 
     def __init__(
         self,
-        delta,
-        sub_networks=None,
-        output_layer=None,
-        num_networks=None,
-        num_layers=None,
-        num_neurons=None,
-        beta=None,
-        gamma=None,
+        delta=1,
         **kwargs
     ):
-        super(L2ProjectionModel, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.delta = tf.constant(delta, dtype=tf.float32)
-        self.sub_nets_init_weights = None
-
-        # Error handling:
-        if self.delta is None:
-            raise ValueError("Missing required argument delta.")
+        self.init_vars = None
 
         # Optional parameters for analysis
-        self.sub_networks = sub_networks
-        self.output_layer = output_layer
-        self.num_networks = num_networks
-        self.num_layers = num_layers
-        self.num_neurons = num_neurons
-        self.beta = tf.constant(beta)
-        self.gamma = tf.constant(gamma)
+        self.sub_networks = kwargs.get('sub_networks', None)
+        self.output_layer = kwargs.get('output_layer', None)
+        self.num_networks = kwargs.get('num_networks', None)
+        self.num_layers = kwargs.get('num_layers', None)
+        self.num_neurons = kwargs.get('num_neurons', None)
+        
+        
+        gamma = kwargs.get('gamma', None)
+        beta = kwargs.get('beta', None)
+        self.beta = tf.constant(beta) if beta is not None else None
+        self.gamma = tf.constant(gamma) if gamma is not None else None
 
     @tf.function(reduce_retracing=True)
-    def train_step(self, data):
+    def train_step(self, data):  # sourcery skip: avoid-builtin-shadow
         """
         Custom training step for the model.
 
         After applying the gradients, the weight vector will be projected on the
-        L2-ball with radius 'delta' around the center 'sub_nets_init_weights'.
+        L2-ball with radius 'delta' around the center 'init_vars'.
 
         Parameters
         ----------
@@ -166,17 +157,15 @@ class L2ProjectionModel(keras.Model):
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
-        # Get current weights and compute global weight difference
-        current_weights = tf.concat(
-            [tf.reshape(w, [-1]) for w in self.trainable_variables[:-1]], axis=0
-        )
-        sub_nets_init_weights = self.sub_nets_init_weights
-        weights_diff = current_weights - sub_nets_init_weights
-
         # Apply L2 projection
-        if tf.norm(weights_diff) > self.delta:
+        vars = self.trainable_variables[:-1]
+        vars_diff = [v - v0 for v, v0 in zip(vars, self.init_vars)]
+
+        if tf.linalg.global_norm(vars_diff) > self.delta:
             # Project the weights and reshape back
-            self.apply_l2_projection(weights_diff)
+            projected_vars = self.apply_l2_projection(vars_diff)
+            for v, pv in zip(vars, projected_vars):
+                v.assign(pv)
 
         # Update metrics (includes the metric that tracks the loss)
         for metric in self.metrics:
@@ -187,25 +176,9 @@ class L2ProjectionModel(keras.Model):
         # Return a dict mapping metric names to current value
         return {m.name: m.result() for m in self.metrics}
 
-    @tf.function(reduce_retracing=True)
-    def apply_l2_projection(self, weights_diff):
-        """
-        Projection on L2-ball with center 'sub_nets_init_weights' and radius 'delta'.
-
-        """
-
-        # Projection of the weights
-        projected_weights = self.sub_nets_init_weights + tf.clip_by_norm(
-            weights_diff, self.delta
-        )
-
-        # Reshape the projected vector to assign weights correctly
-        start = 0
-        for w in self.trainable_variables[:-1]:
-            shape = w.shape
-            size = tf.reduce_prod(shape)
-            w.assign(tf.reshape(projected_weights[start : start + size], shape))
-            start += size
+    def apply_l2_projection(self, vars_diff):
+        projected_diff = tf.clip_by_global_norm(vars_diff, self.delta)[0]
+        return [v0 + pv for v0, pv in zip(self.init_vars, projected_diff)]
 
     def get_config(self):
         return {
@@ -218,7 +191,7 @@ class L2ProjectionModel(keras.Model):
         }
 
 
-def create_sub_network(n=100, num_neurons=5, num_layers=None, beta=None):
+def create_sub_network(n=100, num_neurons=10, num_layers=10, beta=10):
     """
     Creates a submodel with num_layers hidden layers and a truncation layer as
     the last layer.
@@ -228,11 +201,11 @@ def create_sub_network(n=100, num_neurons=5, num_layers=None, beta=None):
     n: int
         number of training samples
     num_neurons: int, optional
-        number of neurons in each hidden layer (default: 5)
+        number of neurons in each hidden layer
     num_layers: int, optional
-        number of hidden layers (default: math.ceil(np.log(n)))
+        number of hidden layers
     beta: float, optional
-        parameter for the truncation layer (default: 100*np.log(n))
+        parameter for the truncation layer
 
     Returns
     -------
@@ -255,7 +228,7 @@ def create_sub_network(n=100, num_neurons=5, num_layers=None, beta=None):
     )
 
     # Create num_layers-1 hidden layers
-    for _ in range(1, num_layers - 1):
+    for _ in range(num_layers - 1):
         model.add(
             Dense(
                 units=num_neurons,
@@ -275,7 +248,7 @@ def create_sub_network(n=100, num_neurons=5, num_layers=None, beta=None):
         )
     )
 
-    # Create tuncation layer
+    # Create truncation layer
     model.add(TruncateLayer(beta=beta))
 
     return model
@@ -283,11 +256,11 @@ def create_sub_network(n=100, num_neurons=5, num_layers=None, beta=None):
 
 def create_dnn(
     train_shape,
-    num_networks=None,
-    num_layers=None,
-    num_neurons=5,
-    beta=None,
-    gamma=None,
+    num_networks=100,
+    num_layers=10,
+    num_neurons=10,
+    beta=10,
+    gamma=10,
     delta=1,
 ):
     """
@@ -299,17 +272,17 @@ def create_dnn(
     train_shape: tuple
         shape of the training data
     num_networks: int, optional
-        number of subnetworks to train (default: math.ceil(n**((np.log(n)**1.1 + 1))))
+        number of subnetworks to train 
     num_layers: int, optional
-        number of hidden layers in each subnetwork (default: math.ceil(np.log(n)))
+        number of hidden layers in each subnetwork 
     num_neurons: int, optional
-        number of neurons in each hidden layer (default: 5)
+        number of neurons in each hidden layer 
     beta: float, optional
-        parameter for the truncation layer (default: 10*np.log(n))
+        parameter for the truncation layer 
     gamma: float, optional
-        parameter for the L1 projection layer (default: 10*n**(d/(2*(1+d))))
+        parameter for the L1 projection layer 
     delta: float, optional
-        parameter for the L2 projection (default: 1)
+        parameter for the L2 projection
 
     """
     # Define input shape based on dimension of input variable
@@ -353,10 +326,6 @@ def create_dnn(
     )
 
     # One-time initialization of initial weights
-    if model.sub_nets_init_weights is None:
-        sub_nets_init_weights = tf.concat(
-            [tf.reshape(w, [-1]) for w in model.trainable_variables[:-1]], axis=0
-        )
-        model.sub_nets_init_weights = sub_nets_init_weights
+    model.init_vars  = [tf.identity(v) for v in model.trainable_variables[:-1]]
 
     return model
