@@ -58,6 +58,7 @@ class L1Projection(keras.constraints.Constraint):
             raise ValueError("Missing required argument gamma.")
         self.gamma = tf.constant(gamma, dtype=tf.float32)
 
+    @tf.function
     def __call__(self, w):
         return self.apply_l1_projection(w)
 
@@ -69,19 +70,14 @@ class L1Projection(keras.constraints.Constraint):
         abs_w = tf.abs(w)
 
         # Compute cumulative sum of the sorted absolute weights
-        u = tf.sort(abs_w, direction="DESCENDING")
-        svp = tf.cumsum(u)
+        u = tf.sort(abs_w, direction="DESCENDING", axis=0)
+        svp = tf.cumsum(u, axis=0) - self.gamma
 
         # Find the position where the condition is violated for the first time
-        cond = tf.cast(svp - self.gamma, tf.float64) / tf.range(
-            1, tf.size(u) + 1, dtype=tf.float64
-        )
-        k = tf.reduce_max(tf.where(tf.cast(u, tf.float64) > cond))
+        ratio = svp / tf.range(1, tf.size(u) + 1, dtype=u.dtype)
 
         # Compute the threshold value
-        theta = tf.cast(tf.gather(svp, k) - self.gamma, tf.float32) / tf.cast(
-            k + 1, tf.float32
-        )
+        theta = tf.reduce_max(tf.maximum(ratio, 0.0), axis=0)
 
         return tf.math.sign(w) * tf.maximum(abs_w - theta, 0)
 
@@ -131,7 +127,7 @@ class L2ProjectionModel(keras.Model):
         self.gamma = tf.constant(gamma) if gamma is not None else None
 
     @tf.function(reduce_retracing=True)
-    def train_step(self, data):  # sourcery skip: avoid-builtin-shadow
+    def train_step(self, data):
         """
         Custom training step for the model.
 
@@ -161,21 +157,17 @@ class L2ProjectionModel(keras.Model):
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
         # Apply L2 projection
-        vars = self.trainable_variables[:-1]
-        vars_diff = [v - v0 for v, v0 in zip(vars, self.init_vars)]
+        vars_nets = self.trainable_variables[:-1]
+        vars_diff = [v - v0 for v, v0 in zip(vars_nets, self.init_vars)]
 
         if tf.linalg.global_norm(vars_diff) > self.delta:
             # Project the weights and reshape back
             projected_vars = self.apply_l2_projection(vars_diff)
-            for v, pv in zip(vars, projected_vars):
+            for v, pv in zip(vars_nets, projected_vars):
                 v.assign(pv)
 
-        # Update metrics (includes the metric that tracks the loss)
-        for metric in self.metrics:
-            if metric.name == "loss":
-                metric.update_state(loss)
-            else:
-                metric.update_state(y, y_pred)
+        # Update the metrics
+        self.compiled_metrics.update_state(y, y_pred)
         # Return a dict mapping metric names to current value
         return {m.name: m.result() for m in self.metrics}
 
