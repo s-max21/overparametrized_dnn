@@ -1,8 +1,8 @@
 # Import necessary librarys
 import tensorflow as tf
-import keras
-from keras.layers import Layer, Input, Dense, Concatenate
-from keras.initializers import RandomUniform, Zeros
+from tensorflow import keras
+from tensorflow.keras.layers import Layer, Input, Dense, Concatenate
+from tensorflow.keras.initializers import RandomUniform, Zeros
 
 
 class TruncateLayer(Layer):
@@ -168,12 +168,8 @@ class L2ProjectionModel(keras.Model):
 
     def get_config(self):
         return {
-            "gamma": self.gamma,
             "delta": self.delta,
-            "beta": self.beta,
-            "num_networks": self.num_networks,
-            "num_layers": self.num_layers,
-            "num_neurons": self.num_neurons,
+            "init_vars": self.init_vars,
         }
 
 
