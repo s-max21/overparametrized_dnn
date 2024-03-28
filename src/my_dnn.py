@@ -1,6 +1,6 @@
 # Import necessary librarys
 import tensorflow as tf
-from tensorflow import keras
+import keras
 from keras.layers import Layer, Input, Dense, Concatenate
 from keras.initializers import RandomUniform, Zeros
 
