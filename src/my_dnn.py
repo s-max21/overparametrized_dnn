@@ -106,26 +106,12 @@ class L2ProjectionModel(keras.Model):
     def __init__(
         self,
         delta=1,
-        sub_networks=None,
-        output_layer=None,
-        num_networks=None,
-        num_layers=None,
-        num_neurons=None,
-        beta=None,
-        gamma=None
+        *args,
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.delta = tf.constant(delta, dtype=tf.float32)
         self.init_vars = None
-
-        # Optional parameters for analysis
-        self.sub_networks = sub_networks
-        self.output_layer = output_layer
-        self.num_networks = num_networks
-        self.num_layers = num_layers
-        self.num_neurons = num_neurons
-        self.beta = tf.constant(beta) if beta is not None else None
-        self.gamma = tf.constant(gamma) if gamma is not None else None
 
     @tf.function(reduce_retracing=True)
     def train_step(self, data):
@@ -316,13 +302,6 @@ def create_dnn(
         inputs=inputs,
         outputs=outputs,
         delta=delta,
-        sub_networks=sub_networks,
-        output_layer=output_layer,
-        num_networks=num_networks,
-        num_layers=num_layers,
-        num_neurons=num_neurons,
-        beta=beta,
-        gamma=gamma,
     )
 
     # One-time initialization of initial weights
