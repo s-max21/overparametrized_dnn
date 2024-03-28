@@ -112,10 +112,9 @@ class L2ProjectionModel(keras.Model):
         num_layers=None,
         num_neurons=None,
         beta=None,
-        gamma=None,
-        **kwargs
+        gamma=None
     ):
-        super().__init__(**kwargs)
+        super().__init__()
         self.delta = tf.constant(delta, dtype=tf.float32)
         self.init_vars = None
 
