@@ -74,7 +74,9 @@ class L1Projection(keras.constraints.Constraint):
         svp = tf.cumsum(u, axis=0) - self.gamma
 
         # Find the position where the condition is violated for the first time
-        ratio = svp / tf.range(1, tf.size(u) + 1, dtype=u.dtype)
+        ratio = svp / tf.reshape(
+            tf.range(1, tf.size(u) + 1, dtype=tf.float32), shape=tf.shape(w)
+        )
 
         # Compute the threshold value
         theta = tf.reduce_max(tf.maximum(ratio, 0.0), axis=0)
@@ -166,8 +168,12 @@ class L2ProjectionModel(keras.Model):
             for v, pv in zip(vars_nets, projected_vars):
                 v.assign(pv)
 
-        # Update the metrics
-        self.compiled_metrics.update_state(y, y_pred)
+        # Update metrics (includes the metric that tracks the loss)
+        for metric in self.metrics:
+            if metric.name == "loss":
+                metric.update_state(loss)
+            else:
+                metric.update_state(y, y_pred)
         # Return a dict mapping metric names to current value
         return {m.name: m.result() for m in self.metrics}
 
@@ -267,15 +273,15 @@ def create_dnn(
     train_shape: tuple
         shape of the training data
     num_networks: int, optional
-        number of subnetworks to train 
+        number of subnetworks to train
     num_layers: int, optional
-        number of hidden layers in each subnetwork 
+        number of hidden layers in each subnetwork
     num_neurons: int, optional
-        number of neurons in each hidden layer 
+        number of neurons in each hidden layer
     beta: float, optional
-        parameter for the truncation layer 
+        parameter for the truncation layer
     gamma: float, optional
-        parameter for the L1 projection layer 
+        parameter for the L1 projection layer
     delta: float, optional
         parameter for the L2 projection
 
@@ -321,6 +327,6 @@ def create_dnn(
     )
 
     # One-time initialization of initial weights
-    model.init_vars  = [tf.identity(v) for v in model.trainable_variables[:-1]]
+    model.init_vars = [tf.identity(v) for v in model.trainable_variables[:-1]]
 
     return model
