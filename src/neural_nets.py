@@ -82,6 +82,7 @@ def parameter_tuning_nn(
     """
     best_mse = np.inf  # Set best_mse to infinity
     best_hp = None  # Initialize best_hp to None
+    best_model = None  # Initialize best_model to None
 
     for unit in units:
         model = create_neural_network(input_dim=input_dim, units=unit)
@@ -92,7 +93,9 @@ def parameter_tuning_nn(
         if best_mse > mse:
             best_mse = mse
             best_hp = unit
-    return {"best_hp": best_hp, "mse": best_mse}
+            best_model = model
+
+    return best_model, best_hp
 
 
 def runs_nn(

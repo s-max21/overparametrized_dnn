@@ -18,6 +18,7 @@ def train_and_evaluate_knn(model, train_data, test_data):
 def parameter_tuning_knn(units, train_data, test_data):
     best_mse = np.inf  # Set best_mse to infinity
     best_config = None  # Initialize best_config to None
+    best_model = None  # Initialize best_model to None
 
     for unit in units:
         model = KNeighborsRegressor(n_neighbors=unit)
@@ -28,7 +29,9 @@ def parameter_tuning_knn(units, train_data, test_data):
         if best_mse > mse:
             best_mse = mse
             best_config = unit
-    return {"best_config": best_config, "mse": best_mse}
+            best_model = model
+            
+    return best_model, best_config
 
 
 def generate_neighbors():
