@@ -31,10 +31,10 @@ def parameter_tuning_knn(units, train_data, test_data):
     return {"best_config": best_config, "mse": best_mse}
 
 
-def generate_neighbors(n_samples, num_values):
-    start = np.log2(1)
-    stop = np.log2(n_samples)
-    return np.unique(np.logspace(start, stop, num_values, base=2, dtype=int)).tolist()
+def generate_neighbors():
+    u = [1, 2, 3]
+    v = list(range(4, x_train.shape[0]+1, 4))
+    return u+v
 
 
 def runs_knn(unit, input_dim, regression_func, samples=50):
