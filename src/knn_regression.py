@@ -30,13 +30,13 @@ def parameter_tuning_knn(units, train_data, test_data):
             best_mse = mse
             best_config = unit
             best_model = model
-            
+
     return best_model, best_config
 
 
-def generate_neighbors():
+def generate_neighbors(n):
     u = [1, 2, 3]
-    v = list(range(4, x_train.shape[0]+1, 4))
+    v = list(range(4, n+1, 4))
     return u+v
 
 
