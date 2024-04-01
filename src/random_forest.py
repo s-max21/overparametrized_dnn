@@ -27,6 +27,6 @@ def parameter_tuning_forest(estimators, train_data, test_data):
             best_config = n_estimators
             best_model = model
             
-        print(f'n_estimators: {n_estimators}, MSE: {score}')
+        print(f'n_estimators: {n_estimators}, MSE: {mse}')
     
     return best_model, best_config
