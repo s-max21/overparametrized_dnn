@@ -1,28 +1,57 @@
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from data.data_generator import get_data
+from sklearn.metrics import mean_squared_error
 import numpy as np
 
 
 def train_and_evaluate_knn(model, train_data, test_data):
+    """
+    Trains the K-Nearest Neighbors model on the training data and evaluates its performance on the test data.
+
+    Args:
+        model: K-Nearest Neighbors model
+            The model to train and evaluate.
+        train_data: tuple
+            Tuple of training input data and target values.
+        test_data: tuple
+            Tuple of test input data and target values.
+
+    Returns:
+        float
+            Mean squared error between the predicted and actual target values.
+    """
+
     x_train, y_train = train_data
     x_test, y_test = test_data
 
     model.fit(x_train, y_train)  # Fit the model to training data
     y_pred = model.predict(x_test)  # Predict on test data
-    mse = mean_squared_error(y_test, y_pred)  # Calculate MSE
-    mae = mean_absolute_error(y_test, y_pred)  # Calculate MAE
-    return mse, mae
+
+    return mean_squared_error(y_test, y_pred)
 
 
 def parameter_tuning_knn(units, train_data, test_data):
+    """
+    Tunes the hyperparameters of a K-Nearest Neighbors model to find the best configuration based on the lowest mean squared error (MSE).
+
+    Args:
+        units: list
+            List of units to tune for the K-Nearest Neighbors model.
+        train_data: tuple
+            Tuple of training input data and target values.
+        test_data: tuple
+            Tuple of test input data and target values.
+
+    Returns:
+        Tuple of the best K-Nearest Neighbors model, the best number of units, and the corresponding MSE.
+    """
+
     best_mse = np.inf  # Set best_mse to infinity
     best_config = None  # Initialize best_config to None
     best_model = None  # Initialize best_model to None
 
     for unit in units:
         model = KNeighborsRegressor(n_neighbors=unit)
-        mse, mae = train_and_evaluate_knn(model, train_data, test_data)
+        mse = train_and_evaluate_knn(model, train_data, test_data)
         print(f"Unit: {unit}, MSE: {mse}, MAE: {mae}")
 
         # Check if current MSE is better than the best MSE so far
@@ -35,29 +64,18 @@ def parameter_tuning_knn(units, train_data, test_data):
 
 
 def generate_neighbors(n):
+    """
+    Generates a list of neighbors starting from [1, 2, 3] and incrementing by 4 up to 'n'.
+
+    Args:
+        n: int
+            The upper limit for generating neighbors.
+
+    Returns:
+        list
+            A list of neighbors starting from [1, 2, 3] and incrementing by 4 up to 'n'.
+    """
+
     u = [1, 2, 3]
-    v = list(range(4, n+1, 4))
-    return u+v
-
-
-def runs_knn(unit, input_dim, regression_func, samples=50):
-    mses = []  # Initialize empty list to store MSEs
-    maes = []  # Initialize empty list to store MAEs
-    for _ in range(samples):
-        x_train, y_train = get_data(
-            regression_func, x_dim=input_dim, num_samples=100, sigma=0.05
-        )
-        x_test, y_test = get_data(
-            regression_func, x_dim=input_dim, num_samples=10**5, sigma=0.05
-        )
-
-        # Preprocess data
-        train_data = (x_train, y_train)
-        test_data = (x_test, y_test)
-
-        model = KNeighborsRegressor(n_neighbors=unit)
-        mse, mae = train_and_evaluate_knn(model, train_data, test_data)
-        mses.append(mse)
-        maes.append(mae)
-
-    return mses, maes
+    v = list(range(4, n + 1, 4))
+    return u + v

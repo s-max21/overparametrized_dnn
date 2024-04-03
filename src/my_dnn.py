@@ -173,9 +173,9 @@ class L2ProjectionModel(keras.Model):
         }
 
 
-def create_sub_network(n=100, num_neurons=10, num_layers=10, beta=10):
+def create_network(n=100, num_neurons=10, num_layers=10, beta=10):
     """
-    Creates a submodel with num_layers hidden layers and a truncation layer as
+    Creates a neural network with num_layers hidden layers and a truncation layer as
     the last layer.
 
     Parameters
@@ -192,7 +192,7 @@ def create_sub_network(n=100, num_neurons=10, num_layers=10, beta=10):
     Returns
     -------
     model: keras.models.Sequential
-        submodel containing a truncation layer as last layer
+        Sequential model containing a truncation layer as last layer
 
     """
 
@@ -246,36 +246,39 @@ def create_dnn(
     delta=1,
 ):
     """
-    Creates a model with num_networks subnetworks with num_layers hidden layers
-    each. The output is the average of the outputs of the subnetworks.
+    Creates a model with num_networks subnetworks, each consisting of num_layers hidden layers.
+    The output is the output of the subnetworks combined in a last dense layer.
 
     Parameters
     ----------
     train_shape: tuple
-        shape of the training data
+        Shape of the training data.
     num_networks: int, optional
-        number of subnetworks to train
+        Number of subnetworks to train.
     num_layers: int, optional
-        number of hidden layers in each subnetwork
+        Number of hidden layers in each subnetwork.
     num_neurons: int, optional
-        number of neurons in each hidden layer
+        Number of neurons in each hidden layer.
     beta: float, optional
-        parameter for the truncation layer
+        Parameter for the truncation layer.
     gamma: float, optional
-        parameter for the L1 projection layer
+        Parameter for the L1 projection layer.
     delta: float, optional
-        parameter for the L2 projection
+        Parameter for the L2 projection.
 
+    Returns
+    -------
+    model: L2ProjectionModel
+        The created model with the specified structure.
     """
+
     # Define input shape based on dimension of input variable
     n, d = train_shape
     input_shape = (d,)
 
     # Create a list containing num_networks DNNs with num_layers hidden layers
     sub_networks = [
-        create_sub_network(
-            n=n, num_neurons=num_neurons, num_layers=num_layers, beta=beta
-        )
+        create_network(n=n, num_neurons=num_neurons, num_layers=num_layers, beta=beta)
         for _ in range(num_networks)
     ]
 

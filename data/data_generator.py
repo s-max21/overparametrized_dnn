@@ -14,7 +14,7 @@ def iqr_median(my_func, x_dim=1, num_samples=10**5, num_repetitions=100):
 
     iqr_values = []
     # Generate random samples of x and calculate IQR for each set
-    for i in range(num_repetitions):
+    for _ in range(num_repetitions):
         x_samples = np.random.rand(num_samples, x_dim)
         my_func_values = my_func(x_samples)
         iqr_values.append(calculate_iqr(my_func_values))
@@ -25,6 +25,7 @@ def iqr_median(my_func, x_dim=1, num_samples=10**5, num_repetitions=100):
 # Generate random data samples
 def get_data(my_func, x_dim=1, num_samples=10**3, sigma=0.05, omega=None, seed=42):
     """Function to generate random data samples"""
+
     rng = np.random.default_rng(seed)
 
     if omega is None:

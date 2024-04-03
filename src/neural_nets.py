@@ -1,7 +1,6 @@
 import numpy as np
 from keras.layers import Dense, Input
 from keras.models import Sequential
-from data.data_generator import get_data, preprocess
 
 
 def create_neural_1(input_dim, units=64, activation="relu"):
@@ -14,10 +13,10 @@ def create_neural_1(input_dim, units=64, activation="relu"):
             Dense(units, activation=activation),
             Dense(1, activation="linear"),
         ],
-        name="one_hidden_layer",
+        name="neural-1",
     )
 
-    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+    model.compile(optimizer="adam", loss="mse")
 
     return model
 
@@ -34,10 +33,10 @@ def create_neural_3(input_dim, units=64, activation="relu"):
             Dense(units, activation=activation),
             Dense(1, activation="linear"),
         ],
-        name="three_hidden_layers",
+        name="neural-3",
     )
 
-    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+    model.compile(optimizer="adam", loss="mse")
 
     return model
 
@@ -57,10 +56,10 @@ def create_neural_6(input_dim, units=64, activation="relu"):
             Dense(units, activation=activation),
             Dense(1, activation="linear"),
         ],
-        name="six_hidden_layers",
+        name="neural-6",
     )
 
-    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+    model.compile(optimizer="adam", loss="mse")
 
     return model
 
@@ -70,24 +69,42 @@ def train_and_evaluate_nn(model, train_data, test_data, epochs=75):
     Trains the model on the given data and evaluates its performance.
     """
     model.fit(train_data, epochs=epochs, verbose=0)
-    mse, mae = model.evaluate(test_data, verbose=0)
-    return mse, mae
+    return model.evaluate(test_data, verbose=0)
 
 
 def parameter_tuning_nn(
     create_neural_network, units, train_data, test_data, input_dim, epochs
 ):
     """
-    Tunes the model's parameters to find the best hyperparameters.
+    Tunes the model's hyperparameters to find the best configuration based on the lowest mean squared error (MSE).
+
+    Parameters
+    ----------
+    create_neural_network: function
+        Function to create a neural network model.
+    units: list
+        List of units to tune for the neural network.
+    train_data: tuple
+        Tuple of training input data and target values.
+    test_data: tuple
+        Tuple of test input data and target values.
+    input_dim: int
+        Dimension of the input data.
+    epochs: int
+        Number of epochs for training.
+
+    Returns
+    -------
+    Tuple of the best neural network model, the best number of units, and the corresponding MSE.
     """
+
     best_mse = np.inf  # Set best_mse to infinity
     best_hp = None  # Initialize best_hp to None
     best_model = None  # Initialize best_model to None
 
     for unit in units:
         model = create_neural_network(input_dim=input_dim, units=unit)
-        mse, mae = train_and_evaluate_nn(model, train_data, test_data, epochs=epochs)
-        print(f"Unit: {unit}, MSE: {mse}, MAE: {mae}")
+        mse = train_and_evaluate_nn(model, train_data, test_data, epochs=epochs)
 
         # Check if current MSE is better than the best MSE so far
         if best_mse > mse:
@@ -96,37 +113,3 @@ def parameter_tuning_nn(
             best_model = model
 
     return best_model, best_hp
-
-
-def runs_nn(
-    create_neural_network,
-    input_dim,
-    regression_func,
-    units,
-    samples=50,
-    epochs=15,
-    batch_size=32,
-):
-    """
-    Calculates the median and interquartile range of the model's performance.
-    """
-    mses = []  # Initialize empty list to store MSEs
-    maes = []  # Initialize empty list to store MAEs
-    for _ in range(samples):
-        x_train, y_train = get_data(
-            regression_func, x_dim=input_dim, num_samples=100, sigma=0.05
-        )
-        x_test, y_test = get_data(
-            regression_func, x_dim=input_dim, num_samples=10**5, sigma=0.05
-        )
-
-        # Preprocess data
-        train_data = preprocess(x_train, y_train, batch_size=batch_size, training=True)
-        test_data = preprocess(x_test, y_test, batch_size=batch_size, training=False)
-
-        model = create_neural_network(input_dim=input_dim, units=units)
-        mse, mae = train_and_evaluate_nn(model, train_data, test_data, epochs=epochs)
-        mses.append(mse)
-        maes.append(mae)
-
-    return mses, maes
