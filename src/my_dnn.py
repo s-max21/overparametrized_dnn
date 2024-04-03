@@ -1,8 +1,8 @@
 # Import necessary librarys
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Layer, Input, Dense, Concatenate
-from tensorflow.keras.initializers import RandomUniform, Zeros
+from keras.layers import Layer, Input, Dense, Concatenate
+from keras.initializers import RandomUniform, Zeros
 
 
 class TruncateLayer(Layer):
@@ -113,7 +113,7 @@ class L2ProjectionModel(keras.Model):
         self.delta = tf.constant(delta, dtype=tf.float32)
         self.init_vars = None
 
-    @tf.function(reduce_retracing=True)
+    @tf.function(reduce_retracing=True, jit_compile=True)
     def train_step(self, data):
         """
         Custom training step for the model.

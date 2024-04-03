@@ -52,7 +52,6 @@ def parameter_tuning_knn(units, train_data, test_data):
     for unit in units:
         model = KNeighborsRegressor(n_neighbors=unit)
         mse = train_and_evaluate_knn(model, train_data, test_data)
-        print(f"Unit: {unit}, MSE: {mse}, MAE: {mae}")
 
         # Check if current MSE is better than the best MSE so far
         if best_mse > mse:
