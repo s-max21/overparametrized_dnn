@@ -58,7 +58,6 @@ class L1Projection(keras.constraints.Constraint):
             raise ValueError("Missing required argument gamma.")
         self.gamma = tf.constant(gamma, dtype=tf.float32)
 
-    @tf.function
     def __call__(self, w):
         return self.apply_l1_projection(w)
 
@@ -113,7 +112,7 @@ class L2ProjectionModel(keras.Model):
         self.delta = tf.constant(delta, dtype=tf.float32)
         self.init_vars = None
 
-    @tf.function(reduce_retracing=True, jit_compile=True)
+    @tf.function
     def train_step(self, data):
         """
         Custom training step for the model.
